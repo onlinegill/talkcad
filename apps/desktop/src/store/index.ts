@@ -303,6 +303,8 @@ export const useSpecsStore = create<SpecsState>()(
 
 interface RenderState {
   stlData: string | null;
+  importedModelData: string | null;
+  importedModelFormat: 'stl' | '3mf' | null;
   stats: RenderStats | null;
   isRendering: boolean;
   errors: string[];
@@ -318,12 +320,15 @@ interface RenderState {
     warnings?: string[]
   ) => void;
   setRendering: (rendering: boolean) => void;
+  setImportedModel: (data: string | null, format: 'stl' | '3mf' | null) => void;
   clearRender: () => void;
   setCaptureViewport: (capture: (() => string | null) | null) => void;
 }
 
 export const useRenderStore = create<RenderState>((set) => ({
   stlData: null,
+  importedModelData: null,
+  importedModelFormat: null,
   stats: null,
   isRendering: false,
   errors: [],
@@ -339,10 +344,44 @@ export const useRenderStore = create<RenderState>((set) => ({
       isRendering: false,
     }),
   setRendering: (isRendering) => set({ isRendering }),
+  setImportedModel: (importedModelData, importedModelFormat) => set({ importedModelData, importedModelFormat }),
   clearRender: () =>
-    set({ stlData: null, stats: null, errors: [], warnings: [] }),
+    set({ stlData: null, importedModelData: null, importedModelFormat: null, stats: null, errors: [], warnings: [] }),
   setCaptureViewport: (captureViewport) => set({ captureViewport }),
 }));
+
+
+export interface ProjectPart {
+  id: string;
+  name: string;
+  code: string;
+  enabled: boolean;
+  translate: [number, number, number];
+  rotate: [number, number, number];
+}
+
+interface PartsState {
+  parts: ProjectPart[];
+  addPart: (part: ProjectPart) => void;
+  updatePart: (id: string, updates: Partial<ProjectPart>) => void;
+  removePart: (id: string) => void;
+  clearParts: () => void;
+}
+
+export const usePartsStore = create<PartsState>()(
+  persist(
+    (set) => ({
+      parts: [],
+      addPart: (part) => set((state) => ({ parts: [...state.parts, part] })),
+      updatePart: (id, updates) => set((state) => ({
+        parts: state.parts.map((part) => part.id === id ? { ...part, ...updates } : part),
+      })),
+      removePart: (id) => set((state) => ({ parts: state.parts.filter((part) => part.id !== id) })),
+      clearParts: () => set({ parts: [] }),
+    }),
+    { name: 'talkcad-parts' }
+  )
+);
 
 // === Layout Store (persisted) ===
 

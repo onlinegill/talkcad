@@ -6,3 +6,8 @@ export { Viewport } from './Viewport';
 export { SpecsPanel } from './SpecsPanel';
 export { ChatPanel } from './ChatPanel';
 export { SettingsModal } from './SettingsModal';
+
+export { PrintPanel } from './PrintPanel';
+export { CreatePanel } from './CreatePanel';
+export { ModifyPanel } from './ModifyPanel';
+export { PartsPanel } from './PartsPanel';

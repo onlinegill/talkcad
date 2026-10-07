@@ -1,14 +1,24 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { clsx } from 'clsx';
-import { useLayoutStore } from '../store';
+import { useLayoutStore, useRenderStore } from '../store';
 import { FileExplorer } from './FileExplorer';
 import { CodeEditor } from './CodeEditor';
 import { Viewport } from './Viewport';
 import { SpecsPanel } from './SpecsPanel';
 import { ChatPanel } from './ChatPanel';
 import { TitleBar } from './TitleBar';
+import { PrintPanel } from './PrintPanel';
+import { CreatePanel } from './CreatePanel';
+import { ModifyPanel } from './ModifyPanel';
+import { PartsPanel } from './PartsPanel';
 
 export function Layout() {
+  const [printOpen, setPrintOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [modifyOpen, setModifyOpen] = useState(false);
+  const [partsOpen, setPartsOpen] = useState(false);
+  const setRenderResult = useRenderStore((state) => state.setRenderResult);
+  const setImportedModel = useRenderStore((state) => state.setImportedModel);
   const { viewMode, filesCollapsed, specsCollapsed, setViewMode, toggleFiles, toggleSpecs } =
     useLayoutStore();
   // Keyboard shortcuts
@@ -38,6 +48,35 @@ export function Layout() {
     [setViewMode, toggleFiles, toggleSpecs]
   );
 
+  const importStl = useCallback(async () => {
+    const file = await window.api.fs.openBinaryFile([
+      { name: 'STL Models', extensions: ['stl'] },
+    ]);
+    if (!file) return;
+
+    const stats = await window.api.openscad.parseStlStats(file.base64);
+    setImportedModel(file.base64, 'stl');
+    setRenderResult(file.base64, stats);
+    setPrintOpen(false);
+    setCreateOpen(false);
+    setModifyOpen(false);
+    setPartsOpen(false);
+    setViewMode('preview');
+  }, [setImportedModel, setRenderResult, setViewMode]);
+
+  const import3mf = useCallback(async () => {
+    const file = await window.api.fs.openBinaryFile([
+      { name: '3MF Projects', extensions: ['3mf'] },
+    ]);
+    if (!file) return;
+
+    setImportedModel(file.base64, '3mf');
+    setCreateOpen(false);
+    setModifyOpen(false);
+    setPartsOpen(false);
+    setPrintOpen(true);
+  }, [setImportedModel]);
+
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -63,9 +102,9 @@ export function Layout() {
         {/* Center Panel */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Tabs */}
-          <div className="flex items-center gap-1 px-2 py-1 border-b border-zinc-700 bg-zinc-800/50">
+          <div className="flex items-center gap-1 px-2 py-1 border-b border-zinc-700 bg-zinc-800/50 overflow-x-auto whitespace-nowrap">
             <button
-              onClick={() => setViewMode('code')}
+              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(false); setPartsOpen(false); setViewMode('code'); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
                 viewMode === 'code'
@@ -76,7 +115,7 @@ export function Layout() {
               Code
             </button>
             <button
-              onClick={() => setViewMode('preview')}
+              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(false); setPartsOpen(false); setViewMode('preview'); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
                 viewMode === 'preview'
@@ -87,23 +126,83 @@ export function Layout() {
               Preview
             </button>
             <button
-              onClick={() => setViewMode('split')}
+              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(false); setPartsOpen(false); setViewMode('split'); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
-                viewMode === 'split'
+                !printOpen && viewMode === 'split'
                   ? 'bg-zinc-700 text-zinc-100'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50'
               )}
             >
               Split
             </button>
+            <button
+              onClick={() => { setPrintOpen(false); setModifyOpen(false); setPartsOpen(false); setCreateOpen(true); }}
+              className={clsx(
+                'px-3 py-1 text-sm rounded transition-colors',
+                createOpen
+                  ? 'bg-zinc-700 text-zinc-100'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50'
+              )}
+            >
+              Create
+            </button>
+            <button
+              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(false); setPartsOpen(true); }}
+              className={clsx(
+                'px-3 py-1 text-sm rounded transition-colors',
+                partsOpen
+                  ? 'bg-zinc-700 text-zinc-100'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50'
+              )}
+            >
+              Parts
+            </button>
+            <button
+              onClick={() => { setPrintOpen(false); setCreateOpen(false); setPartsOpen(false); setModifyOpen(true); }}
+              className={clsx(
+                'px-3 py-1 text-sm rounded transition-colors',
+                modifyOpen
+                  ? 'bg-zinc-700 text-zinc-100'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50'
+              )}
+            >
+              Modify
+            </button>
+            <button
+              onClick={() => { setCreateOpen(false); setModifyOpen(false); setPartsOpen(false); setPrintOpen(true); }}
+              className={clsx(
+                'px-3 py-1 text-sm rounded transition-colors',
+                printOpen
+                  ? 'bg-zinc-700 text-zinc-100'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50'
+              )}
+            >
+              Print
+            </button>
+            <button
+              onClick={importStl}
+              className="px-3 py-1 text-sm rounded text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50 transition-colors"
+            >
+              Import STL
+            </button>
+            <button
+              onClick={import3mf}
+              className="px-3 py-1 text-sm rounded text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50 transition-colors"
+            >
+              Import 3MF
+            </button>
           </div>
 
           {/* Code / Preview Area */}
           <div className="flex-1 overflow-hidden">
-            {viewMode === 'code' && <CodeEditor />}
-            {viewMode === 'preview' && <Viewport />}
-            {viewMode === 'split' && (
+            {createOpen && <CreatePanel onCreated={() => { setCreateOpen(false); setModifyOpen(false); setPartsOpen(false); setPrintOpen(false); setViewMode('split'); }} />}
+            {!createOpen && partsOpen && <PartsPanel onAssemble={() => { setPartsOpen(false); setViewMode('split'); }} />}
+            {!createOpen && !partsOpen && modifyOpen && <ModifyPanel onApplied={() => { setModifyOpen(false); setViewMode('split'); }} />}
+            {!createOpen && !partsOpen && !modifyOpen && printOpen && <PrintPanel />}
+            {!createOpen && !partsOpen && !modifyOpen && !printOpen && viewMode === 'code' && <CodeEditor />}
+            {!createOpen && !partsOpen && !modifyOpen && !printOpen && viewMode === 'preview' && <Viewport />}
+            {!createOpen && !partsOpen && !modifyOpen && !printOpen && viewMode === 'split' && (
               <div className="flex h-full">
                 <div className="w-1/2 border-r border-zinc-700">
                   <CodeEditor />
