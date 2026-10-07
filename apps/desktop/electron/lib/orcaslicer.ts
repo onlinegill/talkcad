@@ -23,6 +23,10 @@ export interface OrcaSliceOptions {
   sparseInfillSpeed?: number;
   initialLayerSpeed?: number;
   exportGcode3mf?: boolean;
+  brimType?: string;
+  brimWidth?: number;
+  raftLayers?: number;
+  skirtLoops?: number;
 }
 
 export interface OrcaProfile {
@@ -265,6 +269,18 @@ export async function sliceStlBase64(
     }
     if (options.initialLayerSpeed && options.initialLayerSpeed > 0) {
       args.push(`--initial-layer-speed=${options.initialLayerSpeed}`);
+    }
+    if (options.brimType) {
+      args.push(`--brim-type=${options.brimType}`);
+    }
+    if (options.brimWidth !== undefined && options.brimWidth >= 0) {
+      args.push(`--brim-width=${options.brimWidth}`);
+    }
+    if (options.raftLayers !== undefined && options.raftLayers >= 0) {
+      args.push(`--raft-layers=${Math.floor(options.raftLayers)}`);
+    }
+    if (options.skirtLoops !== undefined && options.skirtLoops >= 0) {
+      args.push(`--skirt-loops=${Math.floor(options.skirtLoops)}`);
     }
 
     args.push('--outputdir', outputDir, '--slice', '0');
