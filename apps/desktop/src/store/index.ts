@@ -314,6 +314,11 @@ interface RenderState {
   selectedNormal: { x: number; y: number; z: number } | null;
   selectedFaceIndex: number | null;
   ghostStlData: string | null;
+  viewportTransform: {
+    position: [number, number, number];
+    rotation: [number, number, number];
+    scale: [number, number, number];
+  };
 
   // Viewport capture callback (registered by Viewport component)
   captureViewport: (() => string | null) | null;
@@ -336,6 +341,12 @@ interface RenderState {
     faceIndex?: number | null
   ) => void;
   setGhostStlData: (data: string | null) => void;
+  setViewportTransform: (transform: {
+    position: [number, number, number];
+    rotation: [number, number, number];
+    scale: [number, number, number];
+  }) => void;
+  resetViewportTransform: () => void;
   clearRender: () => void;
   setCaptureViewport: (capture: (() => string | null) | null) => void;
 }
@@ -353,6 +364,11 @@ export const useRenderStore = create<RenderState>((set) => ({
   selectedNormal: null,
   selectedFaceIndex: null,
   ghostStlData: null,
+  viewportTransform: {
+    position: [0, 0, 0],
+    rotation: [0, 0, 0],
+    scale: [1, 1, 1],
+  },
   captureViewport: null,
 
   setRenderResult: (output, stats, errors = [], warnings = []) =>
@@ -369,6 +385,10 @@ export const useRenderStore = create<RenderState>((set) => ({
   setSelection: (selectedPoint, selectedNormal = null, selectedFaceIndex = null) =>
     set({ selectedPoint, selectedNormal, selectedFaceIndex }),
   setGhostStlData: (ghostStlData) => set({ ghostStlData }),
+  setViewportTransform: (viewportTransform) => set({ viewportTransform }),
+  resetViewportTransform: () => set({
+    viewportTransform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+  }),
   clearRender: () =>
     set({
       stlData: null,
@@ -382,6 +402,7 @@ export const useRenderStore = create<RenderState>((set) => ({
       selectedNormal: null,
       selectedFaceIndex: null,
       ghostStlData: null,
+      viewportTransform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
     }),
   setCaptureViewport: (captureViewport) => set({ captureViewport }),
 }));
