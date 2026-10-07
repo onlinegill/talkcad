@@ -14,6 +14,15 @@ export interface OrcaSliceOptions {
   export3mf?: boolean;
   outputName?: string;
   inputFormat?: 'stl' | '3mf';
+  layerHeight?: number;
+  infillDensity?: number;
+  infillPattern?: string;
+  wallLoops?: number;
+  enableSupport?: boolean;
+  supportType?: string;
+  sparseInfillSpeed?: number;
+  initialLayerSpeed?: number;
+  exportGcode3mf?: boolean;
 }
 
 export interface OrcaProfile {
@@ -28,6 +37,8 @@ export interface OrcaSliceResult {
   gcodeName?: string;
   project3mfBase64?: string;
   project3mfName?: string;
+  gcode3mfBase64?: string;
+  gcode3mfName?: string;
   estimatedTimeSeconds?: number;
   filamentUsedMm?: number;
   filamentUsedGrams?: number;
@@ -230,10 +241,38 @@ export async function sliceStlBase64(
     if (options.arrange !== false) args.push('--arrange', '1');
     if (options.ensureOnBed !== false) args.push('--ensure-on-bed');
 
+    if (options.layerHeight && options.layerHeight > 0) {
+      args.push(`--layer-height=${options.layerHeight}`);
+    }
+    if (options.infillDensity !== undefined) {
+      const density = Math.max(0, Math.min(100, options.infillDensity));
+      args.push(`--sparse-infill-density=${density}%`);
+    }
+    if (options.infillPattern) {
+      args.push(`--sparse-infill-pattern=${options.infillPattern}`);
+    }
+    if (options.wallLoops !== undefined) {
+      args.push(`--wall-loops=${Math.max(0, Math.floor(options.wallLoops))}`);
+    }
+    if (options.enableSupport !== undefined) {
+      args.push(`--enable-support=${options.enableSupport ? 1 : 0}`);
+    }
+    if (options.enableSupport && options.supportType) {
+      args.push(`--support-type=${options.supportType}`);
+    }
+    if (options.sparseInfillSpeed && options.sparseInfillSpeed > 0) {
+      args.push(`--sparse-infill-speed=${options.sparseInfillSpeed}`);
+    }
+    if (options.initialLayerSpeed && options.initialLayerSpeed > 0) {
+      args.push(`--initial-layer-speed=${options.initialLayerSpeed}`);
+    }
+
     args.push('--outputdir', outputDir, '--slice', '0');
 
     const projectPath = join(outputDir, `${outputName}.3mf`);
-    if (options.export3mf) args.push('--export-3mf', projectPath);
+    const gcode3mfPath = join(outputDir, `${outputName}.gcode.3mf`);
+    if (options.exportGcode3mf) args.push('--export-3mf', gcode3mfPath);
+    else if (options.export3mf) args.push('--export-3mf', projectPath);
 
     const result = await run(slicerPath, args);
     const names = await readdir(outputDir);
@@ -256,6 +295,7 @@ export async function sliceStlBase64(
 
     const gcode = await readFile(join(outputDir, gcodeFile));
     const project = projectFile ? await readFile(join(outputDir, projectFile)) : null;
+    const gcode3mf = gcode3mfFile ? await readFile(join(outputDir, gcode3mfFile)) : null;
     const estimates = parseGcodeEstimates(gcode.toString('utf8'));
 
     return {
@@ -264,6 +304,8 @@ export async function sliceStlBase64(
       gcodeName: basename(gcodeFile, extname(gcodeFile)) + '.gcode',
       project3mfBase64: project?.toString('base64'),
       project3mfName: projectFile,
+      gcode3mfBase64: gcode3mf?.toString('base64'),
+      gcode3mfName: gcode3mfFile,
       ...estimates,
       stdout: result.stdout,
       stderr: result.stderr,
