@@ -39,6 +39,10 @@ export function PrintPanel() {
   const [supportType, setSupportType] = useState('tree(auto)');
   const [sparseInfillSpeed, setSparseInfillSpeed] = useState(0);
   const [initialLayerSpeed, setInitialLayerSpeed] = useState(0);
+  const [brimType, setBrimType] = useState('no_brim');
+  const [brimWidth, setBrimWidth] = useState(5);
+  const [raftLayers, setRaftLayers] = useState(0);
+  const [skirtLoops, setSkirtLoops] = useState(0);
   const [source, setSource] = useState<'code' | 'preview' | 'imported'>('code');
   const [status, setStatus] = useState('');
   const [estimate, setEstimate] = useState<{ time?: number; grams?: number; mm?: number } | null>(null);
@@ -108,6 +112,10 @@ export function PrintPanel() {
           supportType,
           sparseInfillSpeed: sparseInfillSpeed || undefined,
           initialLayerSpeed: initialLayerSpeed || undefined,
+          brimType,
+          brimWidth,
+          raftLayers,
+          skirtLoops,
         },
       });
 
@@ -342,6 +350,60 @@ export function PrintPanel() {
                 step={1}
                 value={initialLayerSpeed}
                 onChange={(e) => setInitialLayerSpeed(Number(e.target.value))}
+                className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
+              />
+            </label>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <label className="grid gap-1">
+              <span className="text-sm">Brim</span>
+              <select
+                value={brimType}
+                onChange={(e) => setBrimType(e.target.value)}
+                className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
+              >
+                <option value="no_brim">No brim</option>
+                <option value="auto_brim">Auto brim</option>
+                <option value="outer_only">Outer only</option>
+                <option value="inner_only">Inner only</option>
+                <option value="outer_and_inner">Outer + inner</option>
+                <option value="brim_ears">Mouse ears</option>
+              </select>
+            </label>
+
+            <label className="grid gap-1">
+              <span className="text-sm">Brim width (mm)</span>
+              <input
+                type="number"
+                min={0}
+                step={0.5}
+                value={brimWidth}
+                onChange={(e) => setBrimWidth(Number(e.target.value))}
+                className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
+              />
+            </label>
+
+            <label className="grid gap-1">
+              <span className="text-sm">Raft layers</span>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                value={raftLayers}
+                onChange={(e) => setRaftLayers(Number(e.target.value))}
+                className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
+              />
+            </label>
+
+            <label className="grid gap-1">
+              <span className="text-sm">Skirt loops</span>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                value={skirtLoops}
+                onChange={(e) => setSkirtLoops(Number(e.target.value))}
                 className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
               />
             </label>
