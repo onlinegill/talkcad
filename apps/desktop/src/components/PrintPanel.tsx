@@ -16,6 +16,8 @@ type OrcaProfile = {
 export function PrintPanel() {
   const code = useEditorStore((s) => s.code);
   const stlData = useRenderStore((s) => s.stlData);
+  const importedModelData = useRenderStore((s) => s.importedModelData);
+  const importedModelFormat = useRenderStore((s) => s.importedModelFormat);
   const setRendering = useRenderStore((s) => s.setRendering);
 
   const [info, setInfo] = useState<SlicerInfo | null>(null);
@@ -26,7 +28,7 @@ export function PrintPanel() {
   const [autoOrient, setAutoOrient] = useState(true);
   const [arrange, setArrange] = useState(true);
   const [export3mf, setExport3mf] = useState(true);
-  const [source, setSource] = useState<'code' | 'preview'>('code');
+  const [source, setSource] = useState<'code' | 'preview' | 'imported'>('code');
   const [status, setStatus] = useState('');
   const [estimate, setEstimate] = useState<{ time?: number; grams?: number; mm?: number } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -50,12 +52,17 @@ export function PrintPanel() {
       setStatus('There is no STL loaded in the current preview.');
       return;
     }
+    if (source === 'imported' && !importedModelData) {
+      setStatus('There is no imported STL/3MF model loaded.');
+      return;
+    }
 
     setBusy(true);
     setRendering(true);
 
     try {
-      let modelStl = stlData || '';
+      let modelStl = source === 'imported' ? (importedModelData || '') : (stlData || '');
+      let inputFormat: 'stl' | '3mf' = source === 'imported' ? (importedModelFormat || 'stl') : 'stl';
 
       if (source === 'code') {
         setStatus('Rendering final STL...');
@@ -65,6 +72,7 @@ export function PrintPanel() {
           return;
         }
         modelStl = rendered.output;
+        inputFormat = 'stl';
       }
 
       setStatus('Slicing with OrcaSlicer...');
@@ -79,6 +87,7 @@ export function PrintPanel() {
           ensureOnBed: true,
           export3mf,
           outputName: 'talkcad-model',
+          inputFormat,
         },
       });
 
@@ -143,16 +152,19 @@ export function PrintPanel() {
           </div>
         </div>
 
-        {stlData && (
+        {(stlData || importedModelData) && (
           <label className="grid gap-1">
             <span className="text-sm">Model source</span>
             <select
               value={source}
-              onChange={(e) => setSource(e.target.value as 'code' | 'preview')}
+              onChange={(e) => setSource(e.target.value as 'code' | 'preview' | 'imported')}
               className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
             >
               <option value="code">Current OpenSCAD code</option>
-              <option value="preview">Current preview STL / imported STL</option>
+              {stlData && <option value="preview">Current preview STL</option>}
+              {importedModelData && (
+                <option value="imported">Imported {importedModelFormat?.toUpperCase() || 'model'}</option>
+              )}
             </select>
           </label>
         )}
