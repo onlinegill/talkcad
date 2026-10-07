@@ -69,6 +69,20 @@ contextBridge.exposeInMainWorld('api', {
     }) => ipcRenderer.invoke('slicer:sliceStl', args),
   },
 
+  // Remote printers
+  printer: {
+    test: (args: { kind: 'octoprint' | 'moonraker'; baseUrl: string; apiKey?: string }) =>
+      ipcRenderer.invoke('printer:test', args),
+    upload: (args: {
+      kind: 'octoprint' | 'moonraker';
+      baseUrl: string;
+      apiKey?: string;
+      fileName: string;
+      gcodeBase64: string;
+      startPrint?: boolean;
+    }) => ipcRenderer.invoke('printer:upload', args),
+  },
+
   // Settings
   settings: {
     load: () => ipcRenderer.invoke('settings:load'),
@@ -260,6 +274,21 @@ declare global {
           stderr: string;
           error?: string;
         }>;
+      };
+      printer: {
+        test(args: {
+          kind: 'octoprint' | 'moonraker';
+          baseUrl: string;
+          apiKey?: string;
+        }): Promise<{ success: boolean; status?: number; response?: string; error?: string }>;
+        upload(args: {
+          kind: 'octoprint' | 'moonraker';
+          baseUrl: string;
+          apiKey?: string;
+          fileName: string;
+          gcodeBase64: string;
+          startPrint?: boolean;
+        }): Promise<{ success: boolean; status?: number; response?: string; error?: string }>;
       };
       settings: {
         load(): Promise<unknown>;
