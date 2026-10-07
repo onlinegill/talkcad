@@ -63,6 +63,7 @@ export function Layout() {
     setCreateOpen(false);
     setModifyOpen(false);
     setPartsOpen(false);
+    setStepOpen(false);
     setViewMode('preview');
   }, [setImportedModel, setRenderResult, setViewMode]);
 
