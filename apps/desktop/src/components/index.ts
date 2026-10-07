@@ -10,3 +10,4 @@ export { SettingsModal } from './SettingsModal';
 export { PrintPanel } from './PrintPanel';
 export { CreatePanel } from './CreatePanel';
 export { ModifyPanel } from './ModifyPanel';
+export { PartsPanel } from './PartsPanel';
