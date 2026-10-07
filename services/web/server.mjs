@@ -13,6 +13,7 @@ const ROOT = resolve(__dirname, '../..');
 const DIST = resolve(ROOT, 'apps/desktop/dist');
 const SKILLS = resolve(ROOT, 'resources/skills');
 const CQ_RUNNER = resolve(ROOT, 'apps/desktop/assets/cadquery/runner.py');
+const MCP_STDIO = resolve(ROOT, 'services/mcp/server.mjs');
 const PORT = Number(process.env.TALKCAD_WEB_PORT || 8787);
 const HOST = process.env.TALKCAD_WEB_HOST || '127.0.0.1';
 
@@ -367,6 +368,101 @@ async function status() {
   return { openscadAvailable: Boolean(openscad), openscadVersion, orcaAvailable: Boolean(orca), orcaVersion, cadqueryAvailable: Boolean(cq), cadqueryVersion: cq?.version || null };
 }
 
+
+function mcpAuthorized(req) {
+  const token = process.env.TALKCAD_MCP_TOKEN;
+  if (!token) return true;
+  const auth = req.headers.authorization || '';
+  return auth === `Bearer ${token}`;
+}
+
+async function forwardMcp(message) {
+  if (message?.method === 'server/discover') {
+    return {
+      jsonrpc: '2.0',
+      id: message.id,
+      result: {
+        resultType: 'complete',
+        supportedVersions: ['2025-11-25'],
+        capabilities: { tools: {}, resources: {}, prompts: {} },
+        _meta: {
+          'io.modelcontextprotocol/serverInfo': { name: 'talkcad-mcp', version: '0.2.0' },
+        },
+        instructions: 'TalkCAD provides local CAD generation, validation, STL/STEP export, slicing, and print preparation tools.',
+        ttlMs: 3600000,
+        cacheScope: 'private',
+      },
+    };
+  }
+
+  return new Promise((resolvePromise, reject) => {
+    const child = spawn(process.execPath, [MCP_STDIO], { stdio: ['pipe', 'pipe', 'pipe'] });
+    let stdout = '';
+    let stderr = '';
+    const timer = setTimeout(() => {
+      child.kill('SIGKILL');
+      reject(new Error('MCP request timed out'));
+    }, 10 * 60_000);
+
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk.toString();
+      const line = stdout.split(/\r?\n/).find((entry) => entry.trim());
+      if (!line) return;
+      try {
+        const parsed = JSON.parse(line);
+        clearTimeout(timer);
+        child.kill();
+        resolvePromise(parsed);
+      } catch {
+        // wait for a complete JSON line
+      }
+    });
+    child.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
+    child.on('error', (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      if (!stdout.trim() && code !== 0) reject(new Error(stderr || `MCP worker exited with ${code}`));
+    });
+
+    child.stdin.end(JSON.stringify(message) + '\n');
+  });
+}
+
+async function handleMcp(req, res) {
+  if (!mcpAuthorized(req)) {
+    res.writeHead(401, { 'WWW-Authenticate': 'Bearer', 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ error: 'Unauthorized' }));
+  }
+  if (req.method !== 'POST') {
+    res.writeHead(405, { Allow: 'POST', 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ error: 'Use POST for stateless MCP requests.' }));
+  }
+
+  try {
+    const message = await readJson(req);
+    const response = await forwardMcp(message);
+    const body = JSON.stringify(response);
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(body),
+      'Cache-Control': 'no-store',
+      'MCP-Protocol-Version': req.headers['mcp-protocol-version'] || '2025-11-25',
+    });
+    res.end(body);
+  } catch (error) {
+    const body = JSON.stringify({
+      jsonrpc: '2.0',
+      id: null,
+      error: { code: -32603, message: error instanceof Error ? error.message : String(error) },
+    });
+    res.writeHead(500, { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) });
+    res.end(body);
+  }
+}
+
 async function handleApi(req, res, pathname) {
   try {
     if (req.method === 'GET' && pathname === '/api/status') return json(res, 200, await status());
@@ -447,6 +543,7 @@ async function serveStatic(req, res, pathname) {
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+  if (url.pathname === '/mcp') return handleMcp(req, res);
   if (url.pathname.startsWith('/api/')) return handleApi(req, res, url.pathname);
   return serveStatic(req, res, url.pathname);
 });
