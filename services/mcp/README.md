@@ -38,3 +38,13 @@ node services/mcp/server.mjs
 ```
 
 The server writes protocol messages only to stdout. Tool subprocess output is returned inside MCP tool results.
+
+## Resources
+
+- `talkcad://capabilities` — current CAD, export, slicing, executable, and tool capabilities.
+- `talkcad://workflow` — recommended design-to-print MCP workflow.
+
+## Prompts
+
+- `design_part` — reusable prompt for generating manufacturable parametric OpenSCAD.
+- `prepare_print` — reusable prompt for planning a printer/profile-aware slicing workflow.
