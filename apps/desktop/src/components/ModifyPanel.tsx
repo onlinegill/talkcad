@@ -34,6 +34,8 @@ export function ModifyPanel({ onApplied }: { onApplied?: () => void }) {
   const selectedPoint = useRenderStore((s) => s.selectedPoint);
   const selectedNormal = useRenderStore((s) => s.selectedNormal);
   const selectedFaceIndex = useRenderStore((s) => s.selectedFaceIndex);
+  const importedModelPath = useRenderStore((s) => s.importedModelPath);
+  const importedModelFormat = useRenderStore((s) => s.importedModelFormat);
   const ghostStlData = useRenderStore((s) => s.ghostStlData);
   const setGhostStlData = useRenderStore((s) => s.setGhostStlData);
   const checkpoints = useHistoryStore((s) => s.checkpoints);
@@ -81,10 +83,19 @@ export function ModifyPanel({ onApplied }: { onApplied?: () => void }) {
     : SCREW_CLEARANCE[screwPreset] ?? diameter;
 
   const wrapped = useMemo(() => {
-    if (!code.trim()) return '';
+    const escapedImportPath = importedModelPath
+      ? importedModelPath.replace(/\\/g, '/').replace(/"/g, '\\"')
+      : '';
+    const sourceCode = code.trim()
+      ? code
+      : escapedImportPath
+        ? `import("${escapedImportPath}");`
+        : '';
+
+    if (!sourceCode.trim()) return '';
 
     const base = `module talkcad_base_model() {
-${code}
+${sourceCode}
 }
 
 `;
@@ -222,7 +233,7 @@ ${code}
 
     return base + 'talkcad_base_model();\n';
   }, [
-    axis, circleRadius, code, count, cutHeight, cutWidth, depth, effectiveDiameter,
+    axis, circleRadius, code, count, cutHeight, cutWidth, depth, effectiveDiameter, importedModelPath,
     gridX, gridY, headDepth, headDiameter, holeStyle, operation, roundRadius,
     slotLength, spacing, sx, sy, sz, tabDepth, tabHeight, tabWidth, textDepth,
     textMode, textSize, textValue, x, y, z,
@@ -264,6 +275,15 @@ ${code}
             Apply common parametric CAD operations without manually rewriting the OpenSCAD.
           </p>
         </div>
+
+        {!code.trim() && importedModelPath && (
+          <div className="rounded border border-blue-500/40 bg-blue-500/10 p-3 text-sm">
+            <div className="text-blue-300 font-medium">Imported ${importedModelFormat?.toUpperCase() || 'mesh'} editing enabled</div>
+            <div className="text-zinc-400 text-xs mt-1">
+              The first modification will create OpenSCAD code that imports the original mesh, then applies the selected boolean/transform operation.
+            </div>
+          </div>
+        )}
 
         {stats && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
