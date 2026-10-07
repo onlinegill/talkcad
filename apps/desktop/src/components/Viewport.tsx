@@ -25,6 +25,7 @@ export function Viewport() {
     errors,
     selectedPoint,
     selectedFaceIndex,
+    ghostStlData,
     setCaptureViewport,
     setSelection,
   } = useRenderStore();
@@ -107,10 +108,28 @@ export function Viewport() {
     }
   }, [importedModelData, importedModelFormat]);
 
+  const ghostGeometry = useMemo((): THREE.BufferGeometry | null => {
+    if (!ghostStlData) return null;
+    try {
+      const bytes = decodeBase64ToBytes(ghostStlData);
+      const loader = new STLLoader();
+      const geometry = loader.parse(bytes.buffer as ArrayBuffer);
+      geometry.computeBoundingSphere();
+      return geometry;
+    } catch {
+      return null;
+    }
+  }, [ghostStlData]);
+
   useEffect(() => {
     if (!geometryOrError.geometry) return;
     return () => geometryOrError.geometry?.dispose();
   }, [geometryOrError.geometry]);
+
+  useEffect(() => {
+    if (!ghostGeometry) return;
+    return () => ghostGeometry.dispose();
+  }, [ghostGeometry]);
 
   useEffect(() => {
     const group = threeMfOrError.group;
@@ -216,6 +235,18 @@ export function Viewport() {
               color={meshColor}
               onPick={handlePick}
             />
+          )}
+
+          {ghostGeometry && (
+            <mesh geometry={ghostGeometry} raycast={() => null}>
+              <meshStandardMaterial
+                color="#a78bfa"
+                transparent
+                opacity={0.22}
+                depthWrite={false}
+                wireframe
+              />
+            </mesh>
           )}
 
           {threeMfOrError.group && (
