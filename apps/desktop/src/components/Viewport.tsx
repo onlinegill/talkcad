@@ -15,7 +15,7 @@ function decodeBase64ToBytes(base64: string): Uint8Array {
 }
 
 export function Viewport() {
-  const { stlData, stats, isRendering, errors, setCaptureViewport } = useRenderStore();
+  const { stlData, stats, isRendering, errors, selectedPoint, setCaptureViewport, setSelection } = useRenderStore();
   const { meshDisplayMode, meshColor, setMeshDisplayMode, showAxisGizmo, setShowAxisGizmo, cameraMode, setCameraMode } = useSettingsStore();
 
   // Store the gl context reference for viewport capture
@@ -154,7 +154,14 @@ export function Viewport() {
               geometry={geometryOrError.geometry}
               wireframe={meshDisplayMode === 'wireframe'}
               color={meshColor}
+              onPick={(point, normal) => setSelection(point, normal)}
             />
+          )}
+          {selectedPoint && (
+            <mesh position={[selectedPoint.x, selectedPoint.y, selectedPoint.z]}>
+              <sphereGeometry args={[1.5, 20, 20]} />
+              <meshBasicMaterial color="#f59e0b" />
+            </mesh>
           )}
           <AutoFitView geometry={geometryOrError.geometry} controlsRef={controlsRef} />
 
@@ -214,8 +221,14 @@ export function Viewport() {
 
       {/* View controls hint */}
       <div className="absolute bottom-3 right-3 text-xs text-zinc-500">
-        Orbit: drag | Pan: right-drag | Zoom: scroll
+        Click: target point | Orbit: drag | Pan: right-drag | Zoom: scroll
       </div>
+
+      {selectedPoint && (
+        <div className="absolute top-3 left-3 text-xs bg-zinc-900/90 border border-zinc-700 rounded px-2 py-1 text-amber-300">
+          Target: {selectedPoint.x.toFixed(2)}, {selectedPoint.y.toFixed(2)}, {selectedPoint.z.toFixed(2)}
+        </div>
+      )}
 
       {/* View controls */}
       <div className="absolute top-3 right-3 flex gap-2">
@@ -336,11 +349,29 @@ interface STLModelProps {
   geometry: THREE.BufferGeometry;
   wireframe?: boolean;
   color?: string;
+  onPick?: (
+    point: { x: number; y: number; z: number },
+    normal: { x: number; y: number; z: number } | null
+  ) => void;
 }
 
-function STLModel({ geometry, wireframe = false, color = '#60a5fa' }: STLModelProps) {
+function STLModel({ geometry, wireframe = false, color = '#60a5fa', onPick }: STLModelProps) {
   return (
-    <mesh geometry={geometry}>
+    <mesh
+      geometry={geometry}
+      onPointerDown={(event: any) => {
+        event.stopPropagation();
+        const point = event.point as THREE.Vector3;
+        let normal: THREE.Vector3 | null = null;
+        if (event.face?.normal) {
+          normal = event.face.normal.clone().transformDirection(event.object.matrixWorld).normalize();
+        }
+        onPick?.(
+          { x: point.x, y: point.y, z: point.z },
+          normal ? { x: normal.x, y: normal.y, z: normal.z } : null
+        );
+      }}
+    >
       <meshStandardMaterial
         color={color}
         metalness={0.1}
