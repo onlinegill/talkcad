@@ -74,8 +74,9 @@ export function Layout() {
     setCreateOpen(false);
     setModifyOpen(false);
     setPartsOpen(false);
-    setPrintOpen(true);
-  }, [setImportedModel]);
+    setPrintOpen(false);
+    setViewMode('preview');
+  }, [setImportedModel, setViewMode]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
