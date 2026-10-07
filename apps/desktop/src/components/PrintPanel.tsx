@@ -15,6 +15,7 @@ type OrcaProfile = {
 
 export function PrintPanel() {
   const code = useEditorStore((s) => s.code);
+  const stlData = useRenderStore((s) => s.stlData);
   const setRendering = useRenderStore((s) => s.setRendering);
 
   const [info, setInfo] = useState<SlicerInfo | null>(null);
@@ -25,6 +26,7 @@ export function PrintPanel() {
   const [autoOrient, setAutoOrient] = useState(true);
   const [arrange, setArrange] = useState(true);
   const [export3mf, setExport3mf] = useState(true);
+  const [source, setSource] = useState<'code' | 'preview'>('code');
   const [status, setStatus] = useState('');
   const [estimate, setEstimate] = useState<{ time?: number; grams?: number; mm?: number } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -40,25 +42,34 @@ export function PrintPanel() {
   }, []);
 
   async function sliceCurrentModel() {
-    if (!code.trim()) {
+    if (source === 'code' && !code.trim()) {
       setStatus('There is no OpenSCAD model to slice.');
+      return;
+    }
+    if (source === 'preview' && !stlData) {
+      setStatus('There is no STL loaded in the current preview.');
       return;
     }
 
     setBusy(true);
     setRendering(true);
-    setStatus('Rendering final STL...');
 
     try {
-      const rendered = await window.api.openscad.render(code, 'stl', { mode: 'final' });
-      if (!rendered.success || !rendered.output) {
-        setStatus(rendered.errors?.join('\n') || 'OpenSCAD failed to create the STL.');
-        return;
+      let modelStl = stlData || '';
+
+      if (source === 'code') {
+        setStatus('Rendering final STL...');
+        const rendered = await window.api.openscad.render(code, 'stl', { mode: 'final' });
+        if (!rendered.success || !rendered.output) {
+          setStatus(rendered.errors?.join('\n') || 'OpenSCAD failed to create the STL.');
+          return;
+        }
+        modelStl = rendered.output;
       }
 
       setStatus('Slicing with OrcaSlicer...');
       const result = await window.api.slicer.sliceStl({
-        stlBase64: rendered.output,
+        stlBase64: modelStl,
         options: {
           printerProfile: printerProfile.trim() || undefined,
           processProfile: processProfile.trim() || undefined,
@@ -131,6 +142,20 @@ export function PrintPanel() {
             </span>
           </div>
         </div>
+
+        {stlData && (
+          <label className="grid gap-1">
+            <span className="text-sm">Model source</span>
+            <select
+              value={source}
+              onChange={(e) => setSource(e.target.value as 'code' | 'preview')}
+              className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
+            >
+              <option value="code">Current OpenSCAD code</option>
+              <option value="preview">Current preview STL / imported STL</option>
+            </select>
+          </label>
+        )}
 
         <div className="grid gap-4">
           <label className="grid gap-1">
