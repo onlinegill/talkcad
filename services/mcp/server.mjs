@@ -243,11 +243,122 @@ async function handle(message) {
   if (method === 'initialize') {
     return result(id, {
       protocolVersion: params?.protocolVersion || '2025-06-18',
-      capabilities: { tools: {} },
+      capabilities: { tools: {}, resources: {}, prompts: {} },
       serverInfo: { name: 'talkcad-mcp', version: '0.1.0' },
     });
   }
   if (method === 'tools/list') return result(id, { tools });
+
+  if (method === 'resources/list') {
+    return result(id, {
+      resources: [
+        {
+          uri: 'talkcad://capabilities',
+          name: 'TalkCAD capabilities',
+          description: 'Current local CAD, export, and slicing capabilities exposed by the TalkCAD MCP server.',
+          mimeType: 'application/json',
+        },
+        {
+          uri: 'talkcad://workflow',
+          name: 'TalkCAD workflow',
+          description: 'Recommended design-to-print workflow for MCP clients.',
+          mimeType: 'text/markdown',
+        },
+      ],
+    });
+  }
+
+  if (method === 'resources/read') {
+    const uri = params?.uri;
+    if (uri === 'talkcad://capabilities') {
+      return result(id, {
+        contents: [{
+          uri,
+          mimeType: 'application/json',
+          text: JSON.stringify({
+            cad: ['OpenSCAD generation', 'OpenSCAD validation', 'STL export'],
+            print: ['STL slicing', '3MF slicing', 'OrcaSlicer profiles', 'G-code generation'],
+            localExecutables: {
+              openscad: openScad(),
+              orcaSlicer: orcaSlicer(),
+            },
+            tools: tools.map((tool) => tool.name),
+          }, null, 2),
+        }],
+      });
+    }
+    if (uri === 'talkcad://workflow') {
+      return result(id, {
+        contents: [{
+          uri,
+          mimeType: 'text/markdown',
+          text: [
+            '# TalkCAD MCP workflow',
+            '',
+            '1. Create or draft geometry with talkcad_create_primitive or OpenSCAD source.',
+            '2. Validate with talkcad_validate_scad.',
+            '3. Render with talkcad_render_stl when an STL artifact is needed.',
+            '4. Slice OpenSCAD with talkcad_slice or an existing STL/3MF with talkcad_slice_file.',
+            '5. Keep printer/process/filament profile paths explicit for reproducible output.',
+          ].join('\n'),
+        }],
+      });
+    }
+    return error(id, -32002, `Resource not found: ${uri}`);
+  }
+
+  if (method === 'prompts/list') {
+    return result(id, {
+      prompts: [
+        {
+          name: 'design_part',
+          description: 'Generate a manufacturable parametric OpenSCAD part from a natural-language requirement.',
+          arguments: [
+            { name: 'requirement', description: 'What the part must do and its dimensions.', required: true },
+          ],
+        },
+        {
+          name: 'prepare_print',
+          description: 'Plan a reliable slicing workflow for an STL/3MF model.',
+          arguments: [
+            { name: 'model', description: 'Model path or description.', required: true },
+            { name: 'printer', description: 'Printer/profile information.', required: false },
+          ],
+        },
+      ],
+    });
+  }
+
+  if (method === 'prompts/get') {
+    if (params?.name === 'design_part') {
+      const requirement = params?.arguments?.requirement || 'the requested part';
+      return result(id, {
+        description: 'Parametric CAD design prompt',
+        messages: [{
+          role: 'user',
+          content: {
+            type: 'text',
+            text: `Design ${requirement} as clean parametric OpenSCAD. Use named parameters for important dimensions, design for manifold 3D printing, then validate the code with TalkCAD before rendering.`,
+          },
+        }],
+      });
+    }
+    if (params?.name === 'prepare_print') {
+      const model = params?.arguments?.model || 'the model';
+      const printer = params?.arguments?.printer || 'the selected printer profile';
+      return result(id, {
+        description: 'Print preparation prompt',
+        messages: [{
+          role: 'user',
+          content: {
+            type: 'text',
+            text: `Prepare ${model} for printing with ${printer}. Prefer explicit printer/process/filament profiles, inspect orientation and supports, then slice through TalkCAD and report estimated time and material usage when available.`,
+          },
+        }],
+      });
+    }
+    return error(id, -32602, `Unknown prompt: ${params?.name}`);
+  }
 
   if (method === 'tools/call') {
     try {
