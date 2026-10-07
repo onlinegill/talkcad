@@ -148,6 +148,17 @@ export function Layout() {
               Create
             </button>
             <button
+              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(false); setPartsOpen(true); }}
+              className={clsx(
+                'px-3 py-1 text-sm rounded transition-colors',
+                partsOpen
+                  ? 'bg-zinc-700 text-zinc-100'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50'
+              )}
+            >
+              Parts
+            </button>
+            <button
               onClick={() => { setPrintOpen(false); setCreateOpen(false); setPartsOpen(false); setModifyOpen(true); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
@@ -185,12 +196,13 @@ export function Layout() {
 
           {/* Code / Preview Area */}
           <div className="flex-1 overflow-hidden">
-            {createOpen && <CreatePanel onCreated={() => { setCreateOpen(false); setModifyOpen(false); setPrintOpen(false); setViewMode('split'); }} />}
-            {!createOpen && modifyOpen && <ModifyPanel onApplied={() => { setModifyOpen(false); setPartsOpen(false); setViewMode('split'); }} />}
-            {!createOpen && !modifyOpen && printOpen && <PrintPanel />}
-            {!createOpen && !modifyOpen && !printOpen && viewMode === 'code' && <CodeEditor />}
-            {!createOpen && !modifyOpen && !printOpen && viewMode === 'preview' && <Viewport />}
-            {!createOpen && !modifyOpen && !printOpen && viewMode === 'split' && (
+            {createOpen && <CreatePanel onCreated={() => { setCreateOpen(false); setModifyOpen(false); setPartsOpen(false); setPrintOpen(false); setViewMode('split'); }} />}
+            {!createOpen && partsOpen && <PartsPanel onAssemble={() => { setPartsOpen(false); setViewMode('split'); }} />}
+            {!createOpen && !partsOpen && modifyOpen && <ModifyPanel onApplied={() => { setModifyOpen(false); setViewMode('split'); }} />}
+            {!createOpen && !partsOpen && !modifyOpen && printOpen && <PrintPanel />}
+            {!createOpen && !partsOpen && !modifyOpen && !printOpen && viewMode === 'code' && <CodeEditor />}
+            {!createOpen && !partsOpen && !modifyOpen && !printOpen && viewMode === 'preview' && <Viewport />}
+            {!createOpen && !partsOpen && !modifyOpen && !printOpen && viewMode === 'split' && (
               <div className="flex h-full">
                 <div className="w-1/2 border-r border-zinc-700">
                   <CodeEditor />
