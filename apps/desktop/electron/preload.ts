@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('api', {
     openFolder: () => ipcRenderer.invoke('fs:openFolder'),
     readDirectory: (path: string) => ipcRenderer.invoke('fs:readDirectory', path),
     readFile: (path: string) => ipcRenderer.invoke('fs:readFile', path),
+    openBinaryFile: (filters?: { name: string; extensions: string[] }[]) => ipcRenderer.invoke('fs:openBinaryFile', filters),
     writeFile: (path: string, content: string) =>
       ipcRenderer.invoke('fs:writeFile', path, content),
     createFile: (path: string) => ipcRenderer.invoke('fs:createFile', path),
@@ -37,6 +38,7 @@ contextBridge.exposeInMainWorld('api', {
   // OrcaSlicer / 3D printing
   slicer: {
     detect: () => ipcRenderer.invoke('slicer:detect'),
+    profiles: () => ipcRenderer.invoke('slicer:profiles'),
     setPath: (path: string) => ipcRenderer.invoke('slicer:setPath', path),
     sliceStl: (args: {
       stlBase64: string;
@@ -154,6 +156,7 @@ declare global {
           type: 'file' | 'directory';
         }>>;
         readFile(path: string): Promise<string>;
+        openBinaryFile(filters?: { name: string; extensions: string[] }[]): Promise<{ path: string; name: string; base64: string } | null>;
         writeFile(path: string, content: string): Promise<void>;
         createFile(path: string): Promise<void>;
         deleteFile(path: string): Promise<void>;
@@ -200,6 +203,7 @@ declare global {
       };
       slicer: {
         detect(): Promise<{ path: string | null; available: boolean; version?: string }>;
+        profiles(): Promise<Array<{ name: string; path: string; kind: 'printer' | 'process' | 'filament' | 'other' }>>;
         setPath(path: string): Promise<{ success: boolean }>;
         sliceStl(args: {
           stlBase64: string;
@@ -219,6 +223,9 @@ declare global {
           gcodeName?: string;
           project3mfBase64?: string;
           project3mfName?: string;
+          estimatedTimeSeconds?: number;
+          filamentUsedMm?: number;
+          filamentUsedGrams?: number;
           stdout: string;
           stderr: string;
           error?: string;
