@@ -350,6 +350,39 @@ export const useRenderStore = create<RenderState>((set) => ({
   setCaptureViewport: (captureViewport) => set({ captureViewport }),
 }));
 
+
+export interface ProjectPart {
+  id: string;
+  name: string;
+  code: string;
+  enabled: boolean;
+  translate: [number, number, number];
+  rotate: [number, number, number];
+}
+
+interface PartsState {
+  parts: ProjectPart[];
+  addPart: (part: ProjectPart) => void;
+  updatePart: (id: string, updates: Partial<ProjectPart>) => void;
+  removePart: (id: string) => void;
+  clearParts: () => void;
+}
+
+export const usePartsStore = create<PartsState>()(
+  persist(
+    (set) => ({
+      parts: [],
+      addPart: (part) => set((state) => ({ parts: [...state.parts, part] })),
+      updatePart: (id, updates) => set((state) => ({
+        parts: state.parts.map((part) => part.id === id ? { ...part, ...updates } : part),
+      })),
+      removePart: (id) => set((state) => ({ parts: state.parts.filter((part) => part.id !== id) })),
+      clearParts: () => set({ parts: [] }),
+    }),
+    { name: 'talkcad-parts' }
+  )
+);
+
 // === Layout Store (persisted) ===
 
 interface LayoutState {
