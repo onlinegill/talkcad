@@ -305,6 +305,7 @@ interface RenderState {
   stlData: string | null;
   importedModelData: string | null;
   importedModelFormat: 'stl' | '3mf' | null;
+  importedModelPath: string | null;
   stats: RenderStats | null;
   isRendering: boolean;
   errors: string[];
@@ -324,7 +325,11 @@ interface RenderState {
     warnings?: string[]
   ) => void;
   setRendering: (rendering: boolean) => void;
-  setImportedModel: (data: string | null, format: 'stl' | '3mf' | null) => void;
+  setImportedModel: (
+    data: string | null,
+    format: 'stl' | '3mf' | null,
+    path?: string | null
+  ) => void;
   setSelection: (
     point: { x: number; y: number; z: number } | null,
     normal?: { x: number; y: number; z: number } | null,
@@ -339,6 +344,7 @@ export const useRenderStore = create<RenderState>((set) => ({
   stlData: null,
   importedModelData: null,
   importedModelFormat: null,
+  importedModelPath: null,
   stats: null,
   isRendering: false,
   errors: [],
@@ -358,7 +364,8 @@ export const useRenderStore = create<RenderState>((set) => ({
       isRendering: false,
     }),
   setRendering: (isRendering) => set({ isRendering }),
-  setImportedModel: (importedModelData, importedModelFormat) => set({ importedModelData, importedModelFormat }),
+  setImportedModel: (importedModelData, importedModelFormat, importedModelPath = null) =>
+    set({ importedModelData, importedModelFormat, importedModelPath }),
   setSelection: (selectedPoint, selectedNormal = null, selectedFaceIndex = null) =>
     set({ selectedPoint, selectedNormal, selectedFaceIndex }),
   setGhostStlData: (ghostStlData) => set({ ghostStlData }),
@@ -367,6 +374,7 @@ export const useRenderStore = create<RenderState>((set) => ({
       stlData: null,
       importedModelData: null,
       importedModelFormat: null,
+      importedModelPath: null,
       stats: null,
       errors: [],
       warnings: [],
