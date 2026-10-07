@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useEditorStore, useRenderStore } from '../store';
+import { SpoolInventory } from './SpoolInventory';
 
 type SlicerInfo = {
   path: string | null;
@@ -631,37 +632,7 @@ export function PrintPanel() {
           {busy ? 'Working…' : 'Slice current model'}
         </button>
 
-        <div className="rounded-lg border border-zinc-700 bg-zinc-800/30 p-4 space-y-3">
-          <div className="font-medium">Spool tracking</div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label className="grid gap-1">
-              <span className="text-sm">Spool name</span>
-              <input
-                value={spoolName}
-                onChange={(e) => setSpoolName(e.target.value)}
-                className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="grid gap-1">
-              <span className="text-sm">Remaining filament (g)</span>
-              <input
-                type="number"
-                min={0}
-                step={1}
-                value={spoolRemainingGrams}
-                onChange={(e) => setSpoolRemainingGrams(Number(e.target.value))}
-                className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
-              />
-            </label>
-          </div>
-          {estimate?.grams && (
-            <div className={estimate.grams > spoolRemainingGrams ? 'text-sm text-red-400' : 'text-sm text-emerald-400'}>
-              {estimate.grams > spoolRemainingGrams
-                ? `Not enough filament: need ${estimate.grams.toFixed(1)} g, have ${spoolRemainingGrams.toFixed(1)} g.`
-                : `After this print, about ${Math.max(0, spoolRemainingGrams - estimate.grams).toFixed(1)} g will remain on ${spoolName || 'this spool'}.`}
-            </div>
-          )}
-        </div>
+        <SpoolInventory estimatedUsageGrams={estimate?.grams} />
 
         {estimate && (
           <>
