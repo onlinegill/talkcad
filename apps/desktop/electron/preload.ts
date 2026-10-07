@@ -51,6 +51,7 @@ contextBridge.exposeInMainWorld('api', {
         ensureOnBed?: boolean;
         export3mf?: boolean;
         outputName?: string;
+        inputFormat?: 'stl' | '3mf';
       };
     }) => ipcRenderer.invoke('slicer:sliceStl', args),
   },
@@ -216,6 +217,7 @@ declare global {
             ensureOnBed?: boolean;
             export3mf?: boolean;
             outputName?: string;
+            inputFormat?: 'stl' | '3mf';
           };
         }): Promise<{
           success: boolean;
