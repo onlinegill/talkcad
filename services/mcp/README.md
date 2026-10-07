@@ -59,3 +59,13 @@ python3 -m pip install cadquery
 ```
 
 Set `CADQUERY_PYTHON` for the MCP server if CadQuery is installed in a specific Python environment.
+
+## HTTP transport
+
+Run the browser backend with `pnpm web`. It exposes a stateless MCP endpoint at:
+
+```
+http://127.0.0.1:8787/mcp
+```
+
+Set `TALKCAD_MCP_TOKEN` before launching to require `Authorization: Bearer <token>` on MCP HTTP requests. The stdio server remains available through `pnpm mcp`.
