@@ -14,6 +14,7 @@ import { registerConfigHandlers } from './config';
 import { registerLlmHandlers } from './llm';
 import { registerSlicerHandlers } from './slicer';
 import { registerPrinterHandlers } from './printer';
+import { registerCadQueryHandlers } from './cadquery';
 
 export { detectOpenSCAD };
 
@@ -29,4 +30,5 @@ export function registerAllHandlers(getMainWindow: () => BrowserWindow | null) {
     registerLlmHandlers();
     registerSlicerHandlers();
     registerPrinterHandlers();
+    registerCadQueryHandlers();
 }
