@@ -34,6 +34,25 @@ contextBridge.exposeInMainWorld('api', {
       ipcRenderer.invoke('openscad:renderImage', code, angle, options),
   },
 
+  // OrcaSlicer / 3D printing
+  slicer: {
+    detect: () => ipcRenderer.invoke('slicer:detect'),
+    setPath: (path: string) => ipcRenderer.invoke('slicer:setPath', path),
+    sliceStl: (args: {
+      stlBase64: string;
+      options?: {
+        printerProfile?: string;
+        processProfile?: string;
+        filamentProfiles?: string[];
+        autoOrient?: boolean;
+        arrange?: boolean;
+        ensureOnBed?: boolean;
+        export3mf?: boolean;
+        outputName?: string;
+      };
+    }) => ipcRenderer.invoke('slicer:sliceStl', args),
+  },
+
   // Settings
   settings: {
     load: () => ipcRenderer.invoke('settings:load'),
@@ -178,6 +197,32 @@ declare global {
           angle: string,
           options?: { width?: number; height?: number }
         ): Promise<{ success: boolean; image?: string; error?: string }>;
+      };
+      slicer: {
+        detect(): Promise<{ path: string | null; available: boolean; version?: string }>;
+        setPath(path: string): Promise<{ success: boolean }>;
+        sliceStl(args: {
+          stlBase64: string;
+          options?: {
+            printerProfile?: string;
+            processProfile?: string;
+            filamentProfiles?: string[];
+            autoOrient?: boolean;
+            arrange?: boolean;
+            ensureOnBed?: boolean;
+            export3mf?: boolean;
+            outputName?: string;
+          };
+        }): Promise<{
+          success: boolean;
+          gcodeBase64?: string;
+          gcodeName?: string;
+          project3mfBase64?: string;
+          project3mfName?: string;
+          stdout: string;
+          stderr: string;
+          error?: string;
+        }>;
       };
       settings: {
         load(): Promise<unknown>;
