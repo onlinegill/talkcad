@@ -11,12 +11,14 @@ import { PrintPanel } from './PrintPanel';
 import { CreatePanel } from './CreatePanel';
 import { ModifyPanel } from './ModifyPanel';
 import { PartsPanel } from './PartsPanel';
+import { StepPanel } from './StepPanel';
 
 export function Layout() {
   const [printOpen, setPrintOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [modifyOpen, setModifyOpen] = useState(false);
   const [partsOpen, setPartsOpen] = useState(false);
+  const [stepOpen, setStepOpen] = useState(false);
   const setRenderResult = useRenderStore((state) => state.setRenderResult);
   const setImportedModel = useRenderStore((state) => state.setImportedModel);
   const { viewMode, filesCollapsed, specsCollapsed, setViewMode, toggleFiles, toggleSpecs } =
@@ -105,7 +107,7 @@ export function Layout() {
           {/* Tabs */}
           <div className="flex items-center gap-1 px-2 py-1 border-b border-zinc-700 bg-zinc-800/50 overflow-x-auto whitespace-nowrap">
             <button
-              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(false); setPartsOpen(false); setViewMode('code'); }}
+              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(false); setPartsOpen(false); setStepOpen(false); setViewMode('code'); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
                 viewMode === 'code'
@@ -116,7 +118,7 @@ export function Layout() {
               Code
             </button>
             <button
-              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(false); setPartsOpen(false); setViewMode('preview'); }}
+              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(false); setPartsOpen(false); setStepOpen(false); setViewMode('preview'); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
                 viewMode === 'preview'
@@ -127,7 +129,7 @@ export function Layout() {
               Preview
             </button>
             <button
-              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(false); setPartsOpen(false); setViewMode('split'); }}
+              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(false); setPartsOpen(false); setStepOpen(false); setViewMode('split'); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
                 !printOpen && viewMode === 'split'
@@ -138,7 +140,7 @@ export function Layout() {
               Split
             </button>
             <button
-              onClick={() => { setPrintOpen(false); setModifyOpen(false); setPartsOpen(false); setCreateOpen(true); }}
+              onClick={() => { setPrintOpen(false); setModifyOpen(false); setPartsOpen(false); setStepOpen(false); setCreateOpen(true); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
                 createOpen
@@ -149,7 +151,7 @@ export function Layout() {
               Create
             </button>
             <button
-              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(false); setPartsOpen(true); }}
+              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(false); setStepOpen(false); setPartsOpen(true); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
                 partsOpen
@@ -160,7 +162,7 @@ export function Layout() {
               Parts
             </button>
             <button
-              onClick={() => { setPrintOpen(false); setCreateOpen(false); setPartsOpen(false); setModifyOpen(true); }}
+              onClick={() => { setPrintOpen(false); setCreateOpen(false); setPartsOpen(false); setStepOpen(false); setModifyOpen(true); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
                 modifyOpen
@@ -171,7 +173,18 @@ export function Layout() {
               Modify
             </button>
             <button
-              onClick={() => { setCreateOpen(false); setModifyOpen(false); setPartsOpen(false); setPrintOpen(true); }}
+              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(false); setPartsOpen(false); setStepOpen(true); }}
+              className={clsx(
+                'px-3 py-1 text-sm rounded transition-colors',
+                stepOpen
+                  ? 'bg-zinc-700 text-zinc-100'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50'
+              )}
+            >
+              STEP
+            </button>
+            <button
+              onClick={() => { setCreateOpen(false); setModifyOpen(false); setPartsOpen(false); setStepOpen(false); setPrintOpen(true); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
                 printOpen
@@ -197,13 +210,14 @@ export function Layout() {
 
           {/* Code / Preview Area */}
           <div className="flex-1 overflow-hidden">
-            {createOpen && <CreatePanel onCreated={() => { setCreateOpen(false); setModifyOpen(false); setPartsOpen(false); setPrintOpen(false); setViewMode('split'); }} />}
-            {!createOpen && partsOpen && <PartsPanel onAssemble={() => { setPartsOpen(false); setViewMode('split'); }} />}
-            {!createOpen && !partsOpen && modifyOpen && <ModifyPanel onApplied={() => { setModifyOpen(false); setViewMode('split'); }} />}
-            {!createOpen && !partsOpen && !modifyOpen && printOpen && <PrintPanel />}
-            {!createOpen && !partsOpen && !modifyOpen && !printOpen && viewMode === 'code' && <CodeEditor />}
-            {!createOpen && !partsOpen && !modifyOpen && !printOpen && viewMode === 'preview' && <Viewport />}
-            {!createOpen && !partsOpen && !modifyOpen && !printOpen && viewMode === 'split' && (
+            {stepOpen && <StepPanel onPreview={() => { setStepOpen(false); setViewMode('preview'); }} />}
+            {!stepOpen && createOpen && <CreatePanel onCreated={() => { setCreateOpen(false); setModifyOpen(false); setPartsOpen(false); setPrintOpen(false); setViewMode('split'); }} />}
+            {!stepOpen && !createOpen && partsOpen && <PartsPanel onAssemble={() => { setPartsOpen(false); setStepOpen(false); setViewMode('split'); }} />}
+            {!stepOpen && !createOpen && !partsOpen && modifyOpen && <ModifyPanel onApplied={() => { setModifyOpen(false); setViewMode('split'); }} />}
+            {!stepOpen && !createOpen && !partsOpen && !modifyOpen && printOpen && <PrintPanel />}
+            {!stepOpen && !createOpen && !partsOpen && !modifyOpen && !printOpen && viewMode === 'code' && <CodeEditor />}
+            {!stepOpen && !createOpen && !partsOpen && !modifyOpen && !printOpen && viewMode === 'preview' && <Viewport />}
+            {!stepOpen && !createOpen && !partsOpen && !modifyOpen && !printOpen && viewMode === 'split' && (
               <div className="flex flex-col md:flex-row h-full">
                 <div className="h-1/2 md:h-full w-full md:w-1/2 border-b md:border-b-0 md:border-r border-zinc-700">
                   <CodeEditor />
