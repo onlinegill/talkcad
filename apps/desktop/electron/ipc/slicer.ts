@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 import {
   getOrcaSlicerInfo,
+  discoverOrcaProfiles,
   setOrcaSlicerPath,
   sliceStlBase64,
   type OrcaSliceOptions,
@@ -8,6 +9,8 @@ import {
 
 export function registerSlicerHandlers() {
   ipcMain.handle('slicer:detect', async () => getOrcaSlicerInfo());
+
+  ipcMain.handle('slicer:profiles', async () => discoverOrcaProfiles());
 
   ipcMain.handle('slicer:setPath', async (_, path: string) => {
     const success = await setOrcaSlicerPath(path);
