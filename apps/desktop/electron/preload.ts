@@ -52,6 +52,15 @@ contextBridge.exposeInMainWorld('api', {
         export3mf?: boolean;
         outputName?: string;
         inputFormat?: 'stl' | '3mf';
+        layerHeight?: number;
+        infillDensity?: number;
+        infillPattern?: string;
+        wallLoops?: number;
+        enableSupport?: boolean;
+        supportType?: string;
+        sparseInfillSpeed?: number;
+        initialLayerSpeed?: number;
+        exportGcode3mf?: boolean;
       };
     }) => ipcRenderer.invoke('slicer:sliceStl', args),
   },
@@ -218,6 +227,15 @@ declare global {
             export3mf?: boolean;
             outputName?: string;
             inputFormat?: 'stl' | '3mf';
+            layerHeight?: number;
+            infillDensity?: number;
+            infillPattern?: string;
+            wallLoops?: number;
+            enableSupport?: boolean;
+            supportType?: string;
+            sparseInfillSpeed?: number;
+            initialLayerSpeed?: number;
+            exportGcode3mf?: boolean;
           };
         }): Promise<{
           success: boolean;
@@ -225,6 +243,8 @@ declare global {
           gcodeName?: string;
           project3mfBase64?: string;
           project3mfName?: string;
+          gcode3mfBase64?: string;
+          gcode3mfName?: string;
           estimatedTimeSeconds?: number;
           filamentUsedMm?: number;
           filamentUsedGrams?: number;
