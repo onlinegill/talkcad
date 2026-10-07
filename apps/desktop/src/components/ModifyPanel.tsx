@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useEditorStore, useRenderStore } from '../store';
+import { useEditorStore, useHistoryStore, useRenderStore } from '../store';
 
 type Operation =
   | 'translate'
@@ -33,6 +33,12 @@ export function ModifyPanel({ onApplied }: { onApplied?: () => void }) {
   const stats = useRenderStore((s) => s.stats);
   const selectedPoint = useRenderStore((s) => s.selectedPoint);
   const selectedNormal = useRenderStore((s) => s.selectedNormal);
+  const selectedFaceIndex = useRenderStore((s) => s.selectedFaceIndex);
+  const ghostStlData = useRenderStore((s) => s.ghostStlData);
+  const setGhostStlData = useRenderStore((s) => s.setGhostStlData);
+  const checkpoints = useHistoryStore((s) => s.checkpoints);
+  const checkpointOrder = useHistoryStore((s) => s.order);
+  const [ghostBusy, setGhostBusy] = useState(false);
   const [operation, setOperation] = useState<Operation>('translate');
 
   const [x, setX] = useState(0);
@@ -228,6 +234,27 @@ ${code}
     onApplied?.();
   };
 
+  const toggleGhost = async () => {
+    if (ghostStlData) {
+      setGhostStlData(null);
+      return;
+    }
+
+    const lastId = checkpointOrder[checkpointOrder.length - 1];
+    const checkpoint = lastId ? checkpoints[lastId] : null;
+    if (!checkpoint?.code?.trim()) return;
+
+    setGhostBusy(true);
+    try {
+      const result = await window.api.openscad.render(checkpoint.code, 'stl', { mode: 'preview' });
+      if (result.success && result.output) {
+        setGhostStlData(result.output);
+      }
+    } finally {
+      setGhostBusy(false);
+    }
+  };
+
   return (
     <div className="h-full overflow-auto p-5 bg-zinc-900">
       <div className="max-w-4xl mx-auto space-y-5">
@@ -253,6 +280,7 @@ ${code}
               <div className="text-amber-300 font-medium">Viewport target selected</div>
               <div className="text-zinc-400 text-xs">
                 X {selectedPoint.x.toFixed(2)} · Y {selectedPoint.y.toFixed(2)} · Z {selectedPoint.z.toFixed(2)}
+                {selectedFaceIndex !== null ? ` · Face ${selectedFaceIndex}` : ''}
               </div>
             </div>
             <button
@@ -274,6 +302,20 @@ ${code}
             </button>
           </div>
         )}
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={toggleGhost}
+            disabled={ghostBusy || (!ghostStlData && checkpointOrder.length === 0)}
+            className="px-3 py-1.5 rounded bg-violet-500/20 hover:bg-violet-500/30 text-violet-200 text-sm disabled:text-zinc-500 disabled:bg-zinc-800"
+          >
+            {ghostBusy ? 'Rendering previous…' : ghostStlData ? 'Hide previous version' : 'Show previous version'}
+          </button>
+          {checkpointOrder.length === 0 && (
+            <span className="text-xs text-zinc-500 self-center">No previous checkpoint available yet.</span>
+          )}
+        </div>
 
         <label className="grid gap-1">
           <span className="text-sm">Operation</span>
