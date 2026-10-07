@@ -309,6 +309,8 @@ interface RenderState {
   isRendering: boolean;
   errors: string[];
   warnings: string[];
+  selectedPoint: { x: number; y: number; z: number } | null;
+  selectedNormal: { x: number; y: number; z: number } | null;
 
   // Viewport capture callback (registered by Viewport component)
   captureViewport: (() => string | null) | null;
@@ -321,6 +323,10 @@ interface RenderState {
   ) => void;
   setRendering: (rendering: boolean) => void;
   setImportedModel: (data: string | null, format: 'stl' | '3mf' | null) => void;
+  setSelection: (
+    point: { x: number; y: number; z: number } | null,
+    normal?: { x: number; y: number; z: number } | null
+  ) => void;
   clearRender: () => void;
   setCaptureViewport: (capture: (() => string | null) | null) => void;
 }
@@ -333,6 +339,8 @@ export const useRenderStore = create<RenderState>((set) => ({
   isRendering: false,
   errors: [],
   warnings: [],
+  selectedPoint: null,
+  selectedNormal: null,
   captureViewport: null,
 
   setRenderResult: (output, stats, errors = [], warnings = []) =>
@@ -345,8 +353,18 @@ export const useRenderStore = create<RenderState>((set) => ({
     }),
   setRendering: (isRendering) => set({ isRendering }),
   setImportedModel: (importedModelData, importedModelFormat) => set({ importedModelData, importedModelFormat }),
+  setSelection: (selectedPoint, selectedNormal = null) => set({ selectedPoint, selectedNormal }),
   clearRender: () =>
-    set({ stlData: null, importedModelData: null, importedModelFormat: null, stats: null, errors: [], warnings: [] }),
+    set({
+      stlData: null,
+      importedModelData: null,
+      importedModelFormat: null,
+      stats: null,
+      errors: [],
+      warnings: [],
+      selectedPoint: null,
+      selectedNormal: null,
+    }),
   setCaptureViewport: (captureViewport) => set({ captureViewport }),
 }));
 
