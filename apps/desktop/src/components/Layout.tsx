@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { clsx } from 'clsx';
-import { useLayoutStore } from '../store';
+import { useLayoutStore, useRenderStore } from '../store';
 import { FileExplorer } from './FileExplorer';
 import { CodeEditor } from './CodeEditor';
 import { Viewport } from './Viewport';
@@ -11,6 +11,7 @@ import { PrintPanel } from './PrintPanel';
 
 export function Layout() {
   const [printOpen, setPrintOpen] = useState(false);
+  const setRenderResult = useRenderStore((state) => state.setRenderResult);
   const { viewMode, filesCollapsed, specsCollapsed, setViewMode, toggleFiles, toggleSpecs } =
     useLayoutStore();
   // Keyboard shortcuts
@@ -39,6 +40,18 @@ export function Layout() {
     },
     [setViewMode, toggleFiles, toggleSpecs]
   );
+
+  const importStl = useCallback(async () => {
+    const file = await window.api.fs.openBinaryFile([
+      { name: 'STL Models', extensions: ['stl'] },
+    ]);
+    if (!file) return;
+
+    const stats = await window.api.openscad.parseStlStats(file.base64);
+    setRenderResult(file.base64, stats);
+    setPrintOpen(false);
+    setViewMode('preview');
+  }, [setRenderResult, setViewMode]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
@@ -109,6 +122,12 @@ export function Layout() {
               )}
             >
               Print
+            </button>
+            <button
+              onClick={importStl}
+              className="px-3 py-1 text-sm rounded text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50 transition-colors"
+            >
+              Import STL
             </button>
           </div>
 
