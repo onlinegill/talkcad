@@ -278,8 +278,11 @@ export async function sliceStlBase64(
     const names = await readdir(outputDir);
 
     const gcodeFile = names.find((name) => /\.gcode$/i.test(name));
-    const projectFile = options.export3mf
-      ? names.find((name) => /\.3mf$/i.test(name))
+    const gcode3mfFile = options.exportGcode3mf
+      ? names.find((name) => /\.gcode\.3mf$/i.test(name))
+      : undefined;
+    const projectFile = options.export3mf && !options.exportGcode3mf
+      ? names.find((name) => /\.3mf$/i.test(name) && !/\.gcode\.3mf$/i.test(name))
       : undefined;
 
     if (result.code !== 0 || !gcodeFile) {
