@@ -1,6 +1,6 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
-import { OrbitControls, Grid, GizmoHelper, GizmoViewport, Line } from '@react-three/drei';
+import { OrbitControls, Grid, GizmoHelper, GizmoViewport, Line, TransformControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import { ThreeMFLoader } from 'three/examples/jsm/loaders/3MFLoader.js';
@@ -26,13 +26,18 @@ export function Viewport() {
     selectedPoint,
     selectedFaceIndex,
     ghostStlData,
+    viewportTransform,
     setCaptureViewport,
     setSelection,
+    setViewportTransform,
+    resetViewportTransform,
   } = useRenderStore();
   const { meshDisplayMode, meshColor, setMeshDisplayMode, showAxisGizmo, setShowAxisGizmo, cameraMode, setCameraMode } = useSettingsStore();
 
   const [measureMode, setMeasureMode] = useState(false);
   const [measurePoints, setMeasurePoints] = useState<THREE.Vector3[]>([]);
+  const [gizmoMode, setGizmoMode] = useState<'translate' | 'rotate' | 'scale' | null>(null);
+  const modelGroupRef = useRef<THREE.Group>(null);
 
   const measuredDistance = useMemo(() => {
     if (measurePoints.length !== 2) return null;
@@ -228,14 +233,43 @@ export function Viewport() {
           <directionalLight position={[10, 10, 5]} intensity={0.8} />
           <directionalLight position={[-10, -10, -5]} intensity={0.3} />
 
-          {geometryOrError.geometry && (
-            <STLModel
-              geometry={geometryOrError.geometry}
-              wireframe={meshDisplayMode === 'wireframe'}
-              color={meshColor}
-              onPick={handlePick}
-            />
-          )}
+          <TransformControls
+            enabled={gizmoMode !== null}
+            mode={gizmoMode || 'translate'}
+            onObjectChange={() => {
+              const group = modelGroupRef.current;
+              if (!group) return;
+              setViewportTransform({
+                position: [group.position.x, group.position.y, group.position.z],
+                rotation: [group.rotation.x, group.rotation.y, group.rotation.z],
+                scale: [group.scale.x, group.scale.y, group.scale.z],
+              });
+            }}
+          >
+            <group
+              ref={modelGroupRef}
+              position={viewportTransform.position}
+              rotation={viewportTransform.rotation}
+              scale={viewportTransform.scale}
+            >
+              {geometryOrError.geometry && (
+                <STLModel
+                  geometry={geometryOrError.geometry}
+                  wireframe={meshDisplayMode === 'wireframe'}
+                  color={meshColor}
+                  onPick={handlePick}
+                />
+              )}
+
+              {threeMfOrError.group && (
+                <ThreeMFModel
+                  group={threeMfOrError.group}
+                  wireframe={meshDisplayMode === 'wireframe'}
+                  onPick={handlePick}
+                />
+              )}
+            </group>
+          </TransformControls>
 
           {ghostGeometry && (
             <mesh geometry={ghostGeometry} raycast={() => null}>
@@ -247,14 +281,6 @@ export function Viewport() {
                 wireframe
               />
             </mesh>
-          )}
-
-          {threeMfOrError.group && (
-            <ThreeMFModel
-              group={threeMfOrError.group}
-              wireframe={meshDisplayMode === 'wireframe'}
-              onPick={handlePick}
-            />
           )}
 
           {!measureMode && selectedPoint && (
@@ -383,6 +409,37 @@ export function Viewport() {
         >
           Measure
         </button>
+
+        <div className="flex rounded overflow-hidden border border-zinc-700">
+          {(['translate', 'rotate', 'scale'] as const).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => {
+                setMeasureMode(false);
+                setMeasurePoints([]);
+                setGizmoMode((current) => current === mode ? null : mode);
+              }}
+              className={`px-2 py-1.5 text-xs transition-colors ${
+                gizmoMode === mode
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-zinc-800/90 hover:bg-zinc-700/90 text-zinc-300'
+              }`}
+              title={`${mode} model with viewport handles`}
+            >
+              {mode === 'translate' ? 'Move' : mode === 'rotate' ? 'Rotate' : 'Scale'}
+            </button>
+          ))}
+          <button
+            onClick={() => {
+              setGizmoMode(null);
+              resetViewportTransform();
+            }}
+            className="px-2 py-1.5 text-xs bg-zinc-800/90 hover:bg-zinc-700/90 text-zinc-300 border-l border-zinc-700"
+            title="Reset viewport transform"
+          >
+            Reset
+          </button>
+        </div>
 
         {/* Camera mode toggle */}
         <button
