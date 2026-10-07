@@ -61,6 +61,10 @@ contextBridge.exposeInMainWorld('api', {
         sparseInfillSpeed?: number;
         initialLayerSpeed?: number;
         exportGcode3mf?: boolean;
+        brimType?: string;
+        brimWidth?: number;
+        raftLayers?: number;
+        skirtLoops?: number;
       };
     }) => ipcRenderer.invoke('slicer:sliceStl', args),
   },
@@ -236,6 +240,10 @@ declare global {
             sparseInfillSpeed?: number;
             initialLayerSpeed?: number;
             exportGcode3mf?: boolean;
+            brimType?: string;
+            brimWidth?: number;
+            raftLayers?: number;
+            skirtLoops?: number;
           };
         }): Promise<{
           success: boolean;
