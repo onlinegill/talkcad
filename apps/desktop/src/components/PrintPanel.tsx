@@ -7,11 +7,18 @@ type SlicerInfo = {
   version?: string;
 };
 
+type OrcaProfile = {
+  name: string;
+  path: string;
+  kind: 'printer' | 'process' | 'filament' | 'other';
+};
+
 export function PrintPanel() {
   const code = useEditorStore((s) => s.code);
   const setRendering = useRenderStore((s) => s.setRendering);
 
   const [info, setInfo] = useState<SlicerInfo | null>(null);
+  const [profiles, setProfiles] = useState<OrcaProfile[]>([]);
   const [printerProfile, setPrinterProfile] = useState('');
   const [processProfile, setProcessProfile] = useState('');
   const [filamentProfile, setFilamentProfile] = useState('');
@@ -19,12 +26,17 @@ export function PrintPanel() {
   const [arrange, setArrange] = useState(true);
   const [export3mf, setExport3mf] = useState(true);
   const [status, setStatus] = useState('');
+  const [estimate, setEstimate] = useState<{ time?: number; grams?: number; mm?: number } | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     window.api.slicer.detect()
       .then(setInfo)
       .catch(() => setInfo({ path: null, available: false }));
+
+    window.api.slicer.profiles()
+      .then(setProfiles)
+      .catch(() => setProfiles([]));
   }, []);
 
   async function sliceCurrentModel() {
@@ -63,6 +75,8 @@ export function PrintPanel() {
         setStatus(result.error || result.stderr || 'Slicing failed.');
         return;
       }
+
+      setEstimate({ time: result.estimatedTimeSeconds, grams: result.filamentUsedGrams, mm: result.filamentUsedMm });
 
       const gcodePath = await window.api.dialog.saveFile({
         title: 'Save sliced G-code',
@@ -120,34 +134,52 @@ export function PrintPanel() {
 
         <div className="grid gap-4">
           <label className="grid gap-1">
-            <span className="text-sm">Printer profile JSON</span>
-            <input
+            <span className="text-sm">Printer profile</span>
+            <select
               value={printerProfile}
               onChange={(e) => setPrinterProfile(e.target.value)}
-              placeholder="/path/to/printer.json"
               className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
-            />
+            >
+              <option value="">Choose printer profile…</option>
+              {profiles.filter((p) => p.kind === 'printer').map((p) => (
+                <option key={p.path} value={p.path}>{p.name}</option>
+              ))}
+            </select>
           </label>
 
           <label className="grid gap-1">
-            <span className="text-sm">Process profile JSON</span>
-            <input
+            <span className="text-sm">Process profile</span>
+            <select
               value={processProfile}
               onChange={(e) => setProcessProfile(e.target.value)}
-              placeholder="/path/to/process.json"
               className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
-            />
+            >
+              <option value="">Choose process profile…</option>
+              {profiles.filter((p) => p.kind === 'process').map((p) => (
+                <option key={p.path} value={p.path}>{p.name}</option>
+              ))}
+            </select>
           </label>
 
           <label className="grid gap-1">
-            <span className="text-sm">Filament profile JSON</span>
-            <input
+            <span className="text-sm">Filament profile</span>
+            <select
               value={filamentProfile}
               onChange={(e) => setFilamentProfile(e.target.value)}
-              placeholder="/path/to/filament.json"
               className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
-            />
+            >
+              <option value="">Choose filament profile…</option>
+              {profiles.filter((p) => p.kind === 'filament').map((p) => (
+                <option key={p.path} value={p.path}>{p.name}</option>
+              ))}
+            </select>
           </label>
+
+          {profiles.length === 0 && (
+            <div className="text-xs text-amber-400">
+              No bundled OrcaSlicer profiles were discovered. You can still slice with Orca defaults, or configure profile paths manually later.
+            </div>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-5 text-sm">
@@ -172,6 +204,23 @@ export function PrintPanel() {
         >
           {busy ? 'Working…' : 'Slice current model'}
         </button>
+
+        {estimate && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="rounded border border-zinc-700 bg-zinc-800/50 p-3">
+              <div className="text-xs text-zinc-400">Estimated time</div>
+              <div className="font-medium">{estimate.time ? Math.round(estimate.time / 60) + ' min' : '—'}</div>
+            </div>
+            <div className="rounded border border-zinc-700 bg-zinc-800/50 p-3">
+              <div className="text-xs text-zinc-400">Filament</div>
+              <div className="font-medium">{estimate.grams ? estimate.grams.toFixed(1) + ' g' : '—'}</div>
+            </div>
+            <div className="rounded border border-zinc-700 bg-zinc-800/50 p-3">
+              <div className="text-xs text-zinc-400">Filament length</div>
+              <div className="font-medium">{estimate.mm ? Math.round(estimate.mm) + ' mm' : '—'}</div>
+            </div>
+          </div>
+        )}
 
         {status && (
           <pre className="whitespace-pre-wrap text-sm rounded border border-zinc-700 bg-zinc-950 p-3 text-zinc-300">
