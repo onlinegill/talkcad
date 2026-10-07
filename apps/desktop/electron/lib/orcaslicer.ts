@@ -13,6 +13,7 @@ export interface OrcaSliceOptions {
   ensureOnBed?: boolean;
   export3mf?: boolean;
   outputName?: string;
+  inputFormat?: 'stl' | '3mf';
 }
 
 export interface OrcaProfile {
@@ -210,7 +211,7 @@ export async function sliceStlBase64(
   }
 
   const workDir = await mkdtemp(join(tmpdir(), 'talkcad-orca-'));
-  const inputPath = join(workDir, 'model.stl');
+  const inputPath = join(workDir, `model.${options.inputFormat || 'stl'}`);
   const outputDir = join(workDir, 'output');
   const outputName = (options.outputName || 'model').replace(/[^a-zA-Z0-9._-]+/g, '-');
 
