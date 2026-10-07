@@ -28,6 +28,15 @@ export function PrintPanel() {
   const [autoOrient, setAutoOrient] = useState(true);
   const [arrange, setArrange] = useState(true);
   const [export3mf, setExport3mf] = useState(true);
+  const [exportGcode3mf, setExportGcode3mf] = useState(false);
+  const [layerHeight, setLayerHeight] = useState(0.2);
+  const [infillDensity, setInfillDensity] = useState(15);
+  const [infillPattern, setInfillPattern] = useState('gyroid');
+  const [wallLoops, setWallLoops] = useState(3);
+  const [enableSupport, setEnableSupport] = useState(false);
+  const [supportType, setSupportType] = useState('tree(auto)');
+  const [sparseInfillSpeed, setSparseInfillSpeed] = useState(0);
+  const [initialLayerSpeed, setInitialLayerSpeed] = useState(0);
   const [source, setSource] = useState<'code' | 'preview' | 'imported'>('code');
   const [status, setStatus] = useState('');
   const [estimate, setEstimate] = useState<{ time?: number; grams?: number; mm?: number } | null>(null);
@@ -85,9 +94,18 @@ export function PrintPanel() {
           autoOrient,
           arrange,
           ensureOnBed: true,
-          export3mf,
+          export3mf: export3mf && !exportGcode3mf,
+          exportGcode3mf,
           outputName: 'talkcad-model',
           inputFormat,
+          layerHeight,
+          infillDensity,
+          infillPattern,
+          wallLoops,
+          enableSupport,
+          supportType,
+          sparseInfillSpeed: sparseInfillSpeed || undefined,
+          initialLayerSpeed: initialLayerSpeed || undefined,
         },
       });
 
@@ -108,7 +126,18 @@ export function PrintPanel() {
         await window.api.fsBinary.writeFile(gcodePath, result.gcodeBase64);
       }
 
-      if (export3mf && result.project3mfBase64) {
+      if (exportGcode3mf && result.gcode3mfBase64) {
+        const bambuPath = await window.api.dialog.saveFile({
+          title: 'Save sliced G-code 3MF',
+          defaultPath: result.gcode3mfName || 'talkcad-model.gcode.3mf',
+          filters: [{ name: 'G-code 3MF', extensions: ['3mf'] }],
+        });
+        if (bambuPath) {
+          await window.api.fsBinary.writeFile(bambuPath, result.gcode3mfBase64);
+        }
+      }
+
+      if (export3mf && !exportGcode3mf && result.project3mfBase64) {
         const projectPath = await window.api.dialog.saveFile({
           title: 'Save OrcaSlicer project',
           defaultPath: result.project3mfName || 'talkcad-model.3mf',
@@ -219,6 +248,114 @@ export function PrintPanel() {
           )}
         </div>
 
+        <div className="rounded-lg border border-zinc-700 bg-zinc-800/30 p-4 space-y-4">
+          <div className="font-medium">Print settings</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className="grid gap-1">
+              <span className="text-sm">Layer height (mm)</span>
+              <input
+                type="number"
+                min={0.04}
+                max={1}
+                step={0.01}
+                value={layerHeight}
+                onChange={(e) => setLayerHeight(Number(e.target.value))}
+                className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
+              />
+            </label>
+
+            <label className="grid gap-1">
+              <span className="text-sm">Infill density (%)</span>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                step={1}
+                value={infillDensity}
+                onChange={(e) => setInfillDensity(Number(e.target.value))}
+                className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
+              />
+            </label>
+
+            <label className="grid gap-1">
+              <span className="text-sm">Infill pattern</span>
+              <select
+                value={infillPattern}
+                onChange={(e) => setInfillPattern(e.target.value)}
+                className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
+              >
+                <option value="gyroid">Gyroid</option>
+                <option value="grid">Grid</option>
+                <option value="cubic">Cubic</option>
+                <option value="honeycomb">Honeycomb</option>
+                <option value="rectilinear">Rectilinear</option>
+                <option value="triangles">Triangles</option>
+                <option value="lightning">Lightning</option>
+              </select>
+            </label>
+
+            <label className="grid gap-1">
+              <span className="text-sm">Wall loops</span>
+              <input
+                type="number"
+                min={0}
+                max={20}
+                step={1}
+                value={wallLoops}
+                onChange={(e) => setWallLoops(Number(e.target.value))}
+                className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
+              />
+            </label>
+
+            <label className="grid gap-1">
+              <span className="text-sm">Sparse infill speed (mm/s, 0 = profile)</span>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                value={sparseInfillSpeed}
+                onChange={(e) => setSparseInfillSpeed(Number(e.target.value))}
+                className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
+              />
+            </label>
+
+            <label className="grid gap-1">
+              <span className="text-sm">Initial layer speed (mm/s, 0 = profile)</span>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                value={initialLayerSpeed}
+                onChange={(e) => setInitialLayerSpeed(Number(e.target.value))}
+                className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
+              />
+            </label>
+          </div>
+
+          <div className="flex flex-wrap gap-4 text-sm">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={enableSupport}
+                onChange={(e) => setEnableSupport(e.target.checked)}
+              />
+              Enable supports
+            </label>
+            {enableSupport && (
+              <select
+                value={supportType}
+                onChange={(e) => setSupportType(e.target.value)}
+                className="bg-zinc-950 border border-zinc-700 rounded px-3 py-1 text-sm"
+              >
+                <option value="normal(auto)">Normal auto</option>
+                <option value="tree(auto)">Tree auto</option>
+                <option value="normal(manual)">Normal manual</option>
+                <option value="tree(manual)">Tree manual</option>
+              </select>
+            )}
+          </div>
+        </div>
+
         <div className="flex flex-wrap gap-5 text-sm">
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={autoOrient} onChange={(e) => setAutoOrient(e.target.checked)} />
@@ -229,8 +366,26 @@ export function PrintPanel() {
             Auto-arrange
           </label>
           <label className="flex items-center gap-2">
-            <input type="checkbox" checked={export3mf} onChange={(e) => setExport3mf(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={export3mf}
+              onChange={(e) => {
+                setExport3mf(e.target.checked);
+                if (e.target.checked) setExportGcode3mf(false);
+              }}
+            />
             Also save 3MF project
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={exportGcode3mf}
+              onChange={(e) => {
+                setExportGcode3mf(e.target.checked);
+                if (e.target.checked) setExport3mf(false);
+              }}
+            />
+            Save Bambu-style .gcode.3mf
           </label>
         </div>
 
