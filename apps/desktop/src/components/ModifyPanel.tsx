@@ -38,6 +38,8 @@ export function ModifyPanel({ onApplied }: { onApplied?: () => void }) {
   const importedModelFormat = useRenderStore((s) => s.importedModelFormat);
   const ghostStlData = useRenderStore((s) => s.ghostStlData);
   const setGhostStlData = useRenderStore((s) => s.setGhostStlData);
+  const viewportTransform = useRenderStore((s) => s.viewportTransform);
+  const resetViewportTransform = useRenderStore((s) => s.resetViewportTransform);
   const checkpoints = useHistoryStore((s) => s.checkpoints);
   const checkpointOrder = useHistoryStore((s) => s.order);
   const [ghostBusy, setGhostBusy] = useState(false);
@@ -245,6 +247,35 @@ ${sourceCode}
     onApplied?.();
   };
 
+  const viewportTransformIsIdentity =
+    viewportTransform.position.every((value) => Math.abs(value) < 1e-6) &&
+    viewportTransform.rotation.every((value) => Math.abs(value) < 1e-6) &&
+    viewportTransform.scale.every((value) => Math.abs(value - 1) < 1e-6);
+
+  const applyViewportTransform = () => {
+    const escapedImportPath = importedModelPath
+      ? importedModelPath.replace(/\\/g, '/').replace(/"/g, '\\"')
+      : '';
+    const sourceCode = code.trim()
+      ? code
+      : escapedImportPath
+        ? `import("${escapedImportPath}");`
+        : '';
+    if (!sourceCode.trim() || viewportTransformIsIdentity) return;
+
+    const deg = viewportTransform.rotation.map((value) => value * 180 / Math.PI);
+    const next = `translate([${viewportTransform.position.map((v) => Number(v.toFixed(4))).join(', ')}])
+  rotate([${deg.map((v) => Number(v.toFixed(4))).join(', ')}])
+    scale([${viewportTransform.scale.map((v) => Number(v.toFixed(5))).join(', ')}]) {
+${sourceCode}
+    }
+`;
+
+    setCode(next);
+    resetViewportTransform();
+    onApplied?.();
+  };
+
   const toggleGhost = async () => {
     if (ghostStlData) {
       setGhostStlData(null);
@@ -324,6 +355,14 @@ ${sourceCode}
         )}
 
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={applyViewportTransform}
+            disabled={viewportTransformIsIdentity || (!code.trim() && !importedModelPath)}
+            className="px-3 py-1.5 rounded bg-blue-600/80 hover:bg-blue-500 text-white text-sm disabled:text-zinc-500 disabled:bg-zinc-800"
+          >
+            Apply viewport transform
+          </button>
           <button
             type="button"
             onClick={toggleGhost}
