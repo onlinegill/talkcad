@@ -16,10 +16,21 @@ This fork now covers the core local conversational CAD-to-print workflow, but it
 - G-code generation
 - Optional Orca 3MF export
 - Print-time and filament estimates
+- Searchable installed printer profile list
+- Layer height, infill density/pattern, wall loops, support type, and speed overrides
+- Bambu-style .gcode.3mf export option
+- Material cost estimate
 - Parametric starter shapes: box, cylinder, rounded plate, tray, mounting plate
 - Direct transforms: move, rotate, scale
 - Direct cylindrical hole operation
-- Linear array and mirror operations
+- M2-M8 screw clearance presets
+- Countersink and counterbore tools
+- Rectangular and slot cuts
+- Add-tab/boss tool
+- Raised and engraved text
+- Whole-part rounding operation
+- Linear, grid, circular, and mirror duplication
+- Measurement readout from rendered model stats
 - Persistent multi-part assembly capture/positioning
 - MCP stdio server
 - MCP primitive creation
@@ -33,15 +44,11 @@ This fork now covers the core local conversational CAD-to-print workflow, but it
 
 ### Direct hand tools
 - Face selection/picking in the viewport
-- Rectangular/circular/slot cuts on a selected face
-- Add/tab tool
+- Face-targeted placement for rectangular/circular/slot cuts
 - Face extrusion
-- Raised/engraved text
-- Interactive round/fillet tool
-- Measure tool
-- Screw clearance presets M2-M8
-- Countersink and counterbore
-- Line/grid/circle/mirror duplication with editable parameters
+- Interactive face-level fillet/chamfer tool
+- Viewport click-to-measure
+- Viewport handles for line/grid/circle/mirror duplication
 
 ### Mesh editing
 - True boolean editing of imported STL/3MF geometry
@@ -50,11 +57,9 @@ This fork now covers the core local conversational CAD-to-print workflow, but it
 - Full 3MF viewport rendering and project round-trip
 
 ### Printing
-- Searchable 380+ printer catalog UX
 - Saved printer favorites / last-used settings
-- High-level controls for layer height, speed, infill, walls, supports, adhesion
-- Bambu .gcode.3mf output handling
-- Spool tracking and print-cost estimates
+- Adhesion/brim/raft quick controls
+- Spool inventory tracking
 - Remote printer handoff
 
 ### Web/mobile
