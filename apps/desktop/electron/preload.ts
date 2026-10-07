@@ -69,6 +69,22 @@ contextBridge.exposeInMainWorld('api', {
     }) => ipcRenderer.invoke('slicer:sliceStl', args),
   },
 
+  // CadQuery / STEP
+  cadquery: {
+    detect: () => ipcRenderer.invoke('cadquery:detect'),
+    export: (args: {
+      spec: {
+        primitive: 'box' | 'cylinder' | 'sphere';
+        width?: number;
+        depth?: number;
+        height?: number;
+        diameter?: number;
+        features?: Array<Record<string, unknown>>;
+      };
+      format: 'step' | 'stl';
+    }) => ipcRenderer.invoke('cadquery:export', args),
+  },
+
   // Remote printers
   printer: {
     test: (args: { kind: 'octoprint' | 'moonraker'; baseUrl: string; apiKey?: string }) =>
@@ -272,6 +288,26 @@ declare global {
           filamentUsedGrams?: number;
           stdout: string;
           stderr: string;
+          error?: string;
+        }>;
+      };
+      cadquery: {
+        detect(): Promise<{ available: boolean; python: string | null; version: string | null }>;
+        export(args: {
+          spec: {
+            primitive: 'box' | 'cylinder' | 'sphere';
+            width?: number;
+            depth?: number;
+            height?: number;
+            diameter?: number;
+            features?: Array<Record<string, unknown>>;
+          };
+          format: 'step' | 'stl';
+        }): Promise<{
+          success: boolean;
+          format?: 'step' | 'stl';
+          output?: string;
+          fileName?: string;
           error?: string;
         }>;
       };
