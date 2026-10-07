@@ -14,6 +14,7 @@ export function Layout() {
   const [printOpen, setPrintOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const setRenderResult = useRenderStore((state) => state.setRenderResult);
+  const setImportedModel = useRenderStore((state) => state.setImportedModel);
   const { viewMode, filesCollapsed, specsCollapsed, setViewMode, toggleFiles, toggleSpecs } =
     useLayoutStore();
   // Keyboard shortcuts
@@ -50,11 +51,23 @@ export function Layout() {
     if (!file) return;
 
     const stats = await window.api.openscad.parseStlStats(file.base64);
+    setImportedModel(file.base64, 'stl');
     setRenderResult(file.base64, stats);
     setPrintOpen(false);
     setCreateOpen(false);
     setViewMode('preview');
-  }, [setRenderResult, setViewMode]);
+  }, [setImportedModel, setRenderResult, setViewMode]);
+
+  const import3mf = useCallback(async () => {
+    const file = await window.api.fs.openBinaryFile([
+      { name: '3MF Projects', extensions: ['3mf'] },
+    ]);
+    if (!file) return;
+
+    setImportedModel(file.base64, '3mf');
+    setCreateOpen(false);
+    setPrintOpen(true);
+  }, [setImportedModel]);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
@@ -142,6 +155,12 @@ export function Layout() {
               className="px-3 py-1 text-sm rounded text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50 transition-colors"
             >
               Import STL
+            </button>
+            <button
+              onClick={import3mf}
+              className="px-3 py-1 text-sm rounded text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50 transition-colors"
+            >
+              Import 3MF
             </button>
           </div>
 
