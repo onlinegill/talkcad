@@ -1,7 +1,7 @@
-import { access, mkdtemp, readFile, readdir, rm, writeFile } from 'fs/promises';
+import { access, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'fs/promises';
 import { constants } from 'fs';
 import { tmpdir } from 'os';
-import { basename, extname, join } from 'path';
+import { basename, dirname, extname, join } from 'path';
 import { spawn } from 'child_process';
 
 export interface OrcaSliceOptions {
@@ -15,12 +15,21 @@ export interface OrcaSliceOptions {
   outputName?: string;
 }
 
+export interface OrcaProfile {
+  name: string;
+  path: string;
+  kind: 'printer' | 'process' | 'filament' | 'other';
+}
+
 export interface OrcaSliceResult {
   success: boolean;
   gcodeBase64?: string;
   gcodeName?: string;
   project3mfBase64?: string;
   project3mfName?: string;
+  estimatedTimeSeconds?: number;
+  filamentUsedMm?: number;
+  filamentUsedGrams?: number;
   stdout: string;
   stderr: string;
   error?: string;
@@ -95,6 +104,64 @@ async function run(command: string, args: string[], timeoutMs = 10 * 60_000) {
   });
 }
 
+async function walkJson(root: string, depth = 0): Promise<string[]> {
+  if (depth > 6) return [];
+  try {
+    const entries = await readdir(root, { withFileTypes: true });
+    const nested = await Promise.all(entries.map(async (entry) => {
+      const full = join(root, entry.name);
+      if (entry.isDirectory()) return walkJson(full, depth + 1);
+      return entry.isFile() && entry.name.toLowerCase().endsWith('.json') ? [full] : [];
+    }));
+    return nested.flat();
+  } catch {
+    return [];
+  }
+}
+
+function profileKind(path: string): OrcaProfile['kind'] {
+  const p = path.toLowerCase();
+  if (p.includes('filament')) return 'filament';
+  if (p.includes('process') || p.includes('print')) return 'process';
+  if (p.includes('machine') || p.includes('printer')) return 'printer';
+  return 'other';
+}
+
+export async function discoverOrcaProfiles(): Promise<OrcaProfile[]> {
+  const slicerPath = await detectOrcaSlicer();
+  if (!slicerPath) return [];
+
+  const roots = new Set<string>();
+  const binDir = dirname(slicerPath);
+
+  if (process.platform === 'darwin' && slicerPath.includes('.app/Contents/MacOS/')) {
+    roots.add(join(dirname(dirname(binDir)), 'Resources', 'profiles'));
+    roots.add(join(dirname(dirname(binDir)), 'Resources', 'profiles', 'BBL'));
+  } else {
+    roots.add(join(binDir, 'resources', 'profiles'));
+    roots.add(join(dirname(binDir), 'resources', 'profiles'));
+    roots.add(join(binDir, 'profiles'));
+  }
+
+  const existingRoots: string[] = [];
+  for (const root of roots) {
+    try {
+      if ((await stat(root)).isDirectory()) existingRoots.push(root);
+    } catch {
+      // ignore missing profile roots
+    }
+  }
+
+  const files = (await Promise.all(existingRoots.map((root) => walkJson(root)))).flat();
+  const profiles = files.map((path) => ({
+    name: basename(path, '.json'),
+    path,
+    kind: profileKind(path),
+  }));
+
+  return profiles.sort((a, b) => a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name));
+}
+
 export async function getOrcaSlicerInfo(): Promise<{ path: string | null; available: boolean; version?: string }> {
   const path = await detectOrcaSlicer();
   if (!path) return { path: null, available: false };
@@ -106,6 +173,31 @@ export async function getOrcaSlicerInfo(): Promise<{ path: string | null; availa
   } catch {
     return { path, available: true };
   }
+}
+
+function parseGcodeEstimates(gcodeText: string): {
+  estimatedTimeSeconds?: number;
+  filamentUsedMm?: number;
+  filamentUsedGrams?: number;
+} {
+  const timeMatch = gcodeText.match(/;\s*(?:estimated printing time|total estimated time)\s*[:=]\s*([^\r\n]+)/i);
+  const filamentMm = gcodeText.match(/;\s*filament used \[mm\]\s*=\s*([0-9.]+)/i);
+  const filamentG = gcodeText.match(/;\s*filament used \[g\]\s*=\s*([0-9.]+)/i);
+
+  let estimatedTimeSeconds: number | undefined;
+  if (timeMatch) {
+    const text = timeMatch[1];
+    const h = Number(text.match(/(\d+)h/i)?.[1] || 0);
+    const m = Number(text.match(/(\d+)m/i)?.[1] || 0);
+    const sec = Number(text.match(/(\d+)s/i)?.[1] || 0);
+    estimatedTimeSeconds = h * 3600 + m * 60 + sec;
+  }
+
+  return {
+    estimatedTimeSeconds,
+    filamentUsedMm: filamentMm ? Number(filamentMm[1]) : undefined,
+    filamentUsedGrams: filamentG ? Number(filamentG[1]) : undefined,
+  };
 }
 
 export async function sliceStlBase64(
@@ -163,6 +255,7 @@ export async function sliceStlBase64(
 
     const gcode = await readFile(join(outputDir, gcodeFile));
     const project = projectFile ? await readFile(join(outputDir, projectFile)) : null;
+    const estimates = parseGcodeEstimates(gcode.toString('utf8'));
 
     return {
       success: true,
@@ -170,6 +263,7 @@ export async function sliceStlBase64(
       gcodeName: basename(gcodeFile, extname(gcodeFile)) + '.gcode',
       project3mfBase64: project?.toString('base64'),
       project3mfName: projectFile,
+      ...estimates,
       stdout: result.stdout,
       stderr: result.stderr,
     };
