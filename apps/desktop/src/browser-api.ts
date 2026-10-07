@@ -33,7 +33,8 @@ async function apiPost(path: string, body: unknown) {
 function downloadBase64(path: string, base64: string) {
   const fileName = path.replace(/^download:\/\//, '') || 'download.bin';
   const bytes = base64ToBytes(base64);
-  const blob = new Blob([bytes], { type: 'application/octet-stream' });
+  const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  const blob = new Blob([buffer], { type: 'application/octet-stream' });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
