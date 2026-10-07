@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { clsx } from 'clsx';
 import { useLayoutStore } from '../store';
 import { FileExplorer } from './FileExplorer';
@@ -7,8 +7,10 @@ import { Viewport } from './Viewport';
 import { SpecsPanel } from './SpecsPanel';
 import { ChatPanel } from './ChatPanel';
 import { TitleBar } from './TitleBar';
+import { PrintPanel } from './PrintPanel';
 
 export function Layout() {
+  const [printOpen, setPrintOpen] = useState(false);
   const { viewMode, filesCollapsed, specsCollapsed, setViewMode, toggleFiles, toggleSpecs } =
     useLayoutStore();
   // Keyboard shortcuts
@@ -65,7 +67,7 @@ export function Layout() {
           {/* Tabs */}
           <div className="flex items-center gap-1 px-2 py-1 border-b border-zinc-700 bg-zinc-800/50">
             <button
-              onClick={() => setViewMode('code')}
+              onClick={() => { setPrintOpen(false); setViewMode('code'); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
                 viewMode === 'code'
@@ -76,7 +78,7 @@ export function Layout() {
               Code
             </button>
             <button
-              onClick={() => setViewMode('preview')}
+              onClick={() => { setPrintOpen(false); setViewMode('preview'); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
                 viewMode === 'preview'
@@ -87,23 +89,35 @@ export function Layout() {
               Preview
             </button>
             <button
-              onClick={() => setViewMode('split')}
+              onClick={() => { setPrintOpen(false); setViewMode('split'); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
-                viewMode === 'split'
+                !printOpen && viewMode === 'split'
                   ? 'bg-zinc-700 text-zinc-100'
                   : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50'
               )}
             >
               Split
             </button>
+            <button
+              onClick={() => setPrintOpen(true)}
+              className={clsx(
+                'px-3 py-1 text-sm rounded transition-colors',
+                printOpen
+                  ? 'bg-zinc-700 text-zinc-100'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50'
+              )}
+            >
+              Print
+            </button>
           </div>
 
           {/* Code / Preview Area */}
           <div className="flex-1 overflow-hidden">
-            {viewMode === 'code' && <CodeEditor />}
-            {viewMode === 'preview' && <Viewport />}
-            {viewMode === 'split' && (
+            {printOpen && <PrintPanel />}
+            {!printOpen && viewMode === 'code' && <CodeEditor />}
+            {!printOpen && viewMode === 'preview' && <Viewport />}
+            {!printOpen && viewMode === 'split' && (
               <div className="flex h-full">
                 <div className="w-1/2 border-r border-zinc-700">
                   <CodeEditor />
