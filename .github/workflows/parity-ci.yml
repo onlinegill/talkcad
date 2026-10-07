@@ -22,6 +22,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter talkcad-desktop typecheck
       - run: node --check services/mcp/server.mjs
+      - run: node --check services/web/server.mjs
+      - run: pnpm --filter talkcad-desktop build:web
       - run: pnpm --filter talkcad-desktop build -- --dir /tmp/talkcad-build
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
