@@ -66,6 +66,10 @@
       {
         "from": "../../resources/skills",
         "to": "assets/skills"
+      },
+      {
+        "from": "assets/cadquery",
+        "to": "cadquery"
       }
     ]
   }
