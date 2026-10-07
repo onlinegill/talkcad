@@ -28,8 +28,6 @@ export function PrintPanel() {
   const [favoritePrinters, setFavoritePrinters] = useState<string[]>([]);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [filamentCostPerKg, setFilamentCostPerKg] = useState(20);
-  const [spoolName, setSpoolName] = useState('Current spool');
-  const [spoolRemainingGrams, setSpoolRemainingGrams] = useState(1000);
   const [processProfile, setProcessProfile] = useState('');
   const [filamentProfile, setFilamentProfile] = useState('');
   const [autoOrient, setAutoOrient] = useState(true);
@@ -90,8 +88,6 @@ export function PrintPanel() {
       if (typeof saved.raftLayers === 'number') setRaftLayers(saved.raftLayers);
       if (typeof saved.skirtLoops === 'number') setSkirtLoops(saved.skirtLoops);
       if (typeof saved.filamentCostPerKg === 'number') setFilamentCostPerKg(saved.filamentCostPerKg);
-      if (typeof saved.spoolName === 'string') setSpoolName(saved.spoolName);
-      if (typeof saved.spoolRemainingGrams === 'number') setSpoolRemainingGrams(saved.spoolRemainingGrams);
       if (Array.isArray(saved.favoritePrinters)) {
         setFavoritePrinters(saved.favoritePrinters.filter((value): value is string => typeof value === 'string'));
       }
@@ -116,8 +112,6 @@ export function PrintPanel() {
       raftLayers,
       skirtLoops,
       filamentCostPerKg,
-      spoolName,
-      spoolRemainingGrams,
       favoritePrinters,
     }));
   }, [
@@ -135,8 +129,6 @@ export function PrintPanel() {
     raftLayers,
     skirtLoops,
     filamentCostPerKg,
-    spoolName,
-    spoolRemainingGrams,
     favoritePrinters,
   ]);
 
