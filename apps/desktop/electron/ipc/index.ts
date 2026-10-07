@@ -13,6 +13,7 @@ import { registerSessionHandlers } from './session';
 import { registerConfigHandlers } from './config';
 import { registerLlmHandlers } from './llm';
 import { registerSlicerHandlers } from './slicer';
+import { registerPrinterHandlers } from './printer';
 
 export { detectOpenSCAD };
 
@@ -27,4 +28,5 @@ export function registerAllHandlers(getMainWindow: () => BrowserWindow | null) {
     registerConfigHandlers();
     registerLlmHandlers();
     registerSlicerHandlers();
+    registerPrinterHandlers();
 }
