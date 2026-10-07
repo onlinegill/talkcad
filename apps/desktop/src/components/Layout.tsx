@@ -93,7 +93,7 @@ export function Layout() {
         {/* Files Sidebar */}
         <div
           className={clsx(
-            'border-r border-zinc-700 transition-all duration-200',
+            'hidden md:block border-r border-zinc-700 transition-all duration-200 shrink-0',
             filesCollapsed ? 'w-10' : 'w-56'
           )}
         >
@@ -101,7 +101,7 @@ export function Layout() {
         </div>
 
         {/* Center Panel */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
           {/* Tabs */}
           <div className="flex items-center gap-1 px-2 py-1 border-b border-zinc-700 bg-zinc-800/50 overflow-x-auto whitespace-nowrap">
             <button
@@ -204,11 +204,11 @@ export function Layout() {
             {!createOpen && !partsOpen && !modifyOpen && !printOpen && viewMode === 'code' && <CodeEditor />}
             {!createOpen && !partsOpen && !modifyOpen && !printOpen && viewMode === 'preview' && <Viewport />}
             {!createOpen && !partsOpen && !modifyOpen && !printOpen && viewMode === 'split' && (
-              <div className="flex h-full">
-                <div className="w-1/2 border-r border-zinc-700">
+              <div className="flex flex-col md:flex-row h-full">
+                <div className="h-1/2 md:h-full w-full md:w-1/2 border-b md:border-b-0 md:border-r border-zinc-700">
                   <CodeEditor />
                 </div>
-                <div className="w-1/2">
+                <div className="h-1/2 md:h-full w-full md:w-1/2">
                   <Viewport />
                 </div>
               </div>
@@ -219,7 +219,7 @@ export function Layout() {
         {/* Specs Sidebar */}
         <div
           className={clsx(
-            'border-l border-zinc-700 transition-all duration-200',
+            'hidden lg:block border-l border-zinc-700 transition-all duration-200 shrink-0',
             specsCollapsed ? 'w-10' : 'w-56'
           )}
         >
