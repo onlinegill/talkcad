@@ -18,6 +18,7 @@ node services/mcp/server.mjs
 
 ## Tools
 
+- `talkcad_export_step` — export a constrained CadQuery/OpenCascade model to native STEP (requires CadQuery in Python).
 - `talkcad_create_primitive` — create OpenSCAD source for a box, cylinder, or sphere.
 - `talkcad_validate_scad` — compile/validate OpenSCAD source.
 - `talkcad_render_stl` — render OpenSCAD source to an STL file.
@@ -48,3 +49,13 @@ The server writes protocol messages only to stdout. Tool subprocess output is re
 
 - `design_part` — reusable prompt for generating manufacturable parametric OpenSCAD.
 - `prepare_print` — reusable prompt for planning a printer/profile-aware slicing workflow.
+
+## CadQuery / STEP
+
+Native STEP export is optional. Install CadQuery in a Python environment visible to TalkCAD/MCP, for example:
+
+```bash
+python3 -m pip install cadquery
+```
+
+Set `CADQUERY_PYTHON` for the MCP server if CadQuery is installed in a specific Python environment.
