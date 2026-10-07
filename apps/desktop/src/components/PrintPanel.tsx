@@ -51,6 +51,14 @@ export function PrintPanel() {
   const [status, setStatus] = useState('');
   const [estimate, setEstimate] = useState<{ time?: number; grams?: number; mm?: number } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [lastGcodeBase64, setLastGcodeBase64] = useState('');
+  const [lastGcodeName, setLastGcodeName] = useState('talkcad-model.gcode');
+  const [printerKind, setPrinterKind] = useState<'octoprint' | 'moonraker'>('moonraker');
+  const [remotePrinterUrl, setRemotePrinterUrl] = useState('');
+  const [remotePrinterApiKey, setRemotePrinterApiKey] = useState('');
+  const [remoteStartPrint, setRemoteStartPrint] = useState(false);
+  const [remoteStatus, setRemoteStatus] = useState('');
+  const [remoteBusy, setRemoteBusy] = useState(false);
 
   useEffect(() => {
     window.api.slicer.detect()
@@ -131,6 +139,57 @@ export function PrintPanel() {
     favoritePrinters,
   ]);
 
+  async function testRemotePrinter() {
+    if (!remotePrinterUrl.trim()) {
+      setRemoteStatus('Enter the printer URL first.');
+      return;
+    }
+    setRemoteBusy(true);
+    setRemoteStatus('Testing connection...');
+    try {
+      const result = await window.api.printer.test({
+        kind: printerKind,
+        baseUrl: remotePrinterUrl,
+        apiKey: remotePrinterApiKey.trim() || undefined,
+      });
+      setRemoteStatus(result.success ? 'Printer connection successful.' : result.error || 'Printer connection failed.');
+    } catch (error) {
+      setRemoteStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      setRemoteBusy(false);
+    }
+  }
+
+  async function sendToRemotePrinter() {
+    if (!lastGcodeBase64) {
+      setRemoteStatus('Slice a model first so there is G-code to upload.');
+      return;
+    }
+    if (!remotePrinterUrl.trim()) {
+      setRemoteStatus('Enter the printer URL first.');
+      return;
+    }
+    setRemoteBusy(true);
+    setRemoteStatus(remoteStartPrint ? 'Uploading and starting print...' : 'Uploading G-code...');
+    try {
+      const result = await window.api.printer.upload({
+        kind: printerKind,
+        baseUrl: remotePrinterUrl,
+        apiKey: remotePrinterApiKey.trim() || undefined,
+        fileName: lastGcodeName,
+        gcodeBase64: lastGcodeBase64,
+        startPrint: remoteStartPrint,
+      });
+      setRemoteStatus(result.success
+        ? remoteStartPrint ? 'Uploaded and print start requested.' : 'G-code uploaded successfully.'
+        : result.error || 'Upload failed.');
+    } catch (error) {
+      setRemoteStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      setRemoteBusy(false);
+    }
+  }
+
   async function sliceCurrentModel() {
     if (source === 'code' && !code.trim()) {
       setStatus('There is no OpenSCAD model to slice.');
@@ -198,6 +257,8 @@ export function PrintPanel() {
       }
 
       setEstimate({ time: result.estimatedTimeSeconds, grams: result.filamentUsedGrams, mm: result.filamentUsedMm });
+      setLastGcodeBase64(result.gcodeBase64);
+      setLastGcodeName(result.gcodeName || 'talkcad-model.gcode');
 
       const gcodePath = await window.api.dialog.saveFile({
         title: 'Save sliced G-code',
@@ -637,6 +698,79 @@ export function PrintPanel() {
             </label>
           </>
         )}
+
+        <div className="rounded-lg border border-zinc-700 bg-zinc-800/30 p-4 space-y-4">
+          <div>
+            <div className="font-medium">Send to network printer</div>
+            <div className="text-xs text-zinc-400 mt-1">Supports Moonraker/Klipper and OctoPrint. API keys stay only in memory for this app session.</div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="grid gap-1">
+              <span className="text-sm">Printer system</span>
+              <select
+                value={printerKind}
+                onChange={(e) => setPrinterKind(e.target.value as 'octoprint' | 'moonraker')}
+                className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
+              >
+                <option value="moonraker">Moonraker / Klipper</option>
+                <option value="octoprint">OctoPrint</option>
+              </select>
+            </label>
+            <label className="grid gap-1">
+              <span className="text-sm">Printer URL</span>
+              <input
+                value={remotePrinterUrl}
+                onChange={(e) => setRemotePrinterUrl(e.target.value)}
+                placeholder="http://printer.local"
+                className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
+              />
+            </label>
+          </div>
+
+          <label className="grid gap-1">
+            <span className="text-sm">API key (optional if your printer does not require one)</span>
+            <input
+              type="password"
+              value={remotePrinterApiKey}
+              onChange={(e) => setRemotePrinterApiKey(e.target.value)}
+              autoComplete="off"
+              className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
+            />
+          </label>
+
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={remoteStartPrint}
+              onChange={(e) => setRemoteStartPrint(e.target.checked)}
+            />
+            Start printing immediately after upload
+          </label>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={testRemotePrinter}
+              disabled={remoteBusy || !remotePrinterUrl.trim()}
+              className="px-3 py-2 rounded bg-zinc-700 hover:bg-zinc-600 disabled:text-zinc-500 text-sm"
+            >
+              Test connection
+            </button>
+            <button
+              type="button"
+              onClick={sendToRemotePrinter}
+              disabled={remoteBusy || !lastGcodeBase64 || !remotePrinterUrl.trim()}
+              className="px-3 py-2 rounded bg-emerald-600 hover:bg-emerald-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-sm"
+            >
+              {remoteStartPrint ? 'Upload & print' : 'Upload G-code'}
+            </button>
+          </div>
+
+          {remoteStatus && (
+            <div className="text-sm text-zinc-300 bg-zinc-950 border border-zinc-700 rounded p-2">{remoteStatus}</div>
+          )}
+        </div>
 
         {status && (
           <pre className="whitespace-pre-wrap text-sm rounded border border-zinc-700 bg-zinc-950 p-3 text-zinc-300">
