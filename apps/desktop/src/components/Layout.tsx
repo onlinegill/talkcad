@@ -55,7 +55,7 @@ export function Layout() {
     if (!file) return;
 
     const stats = await window.api.openscad.parseStlStats(file.base64);
-    setImportedModel(file.base64, 'stl');
+    setImportedModel(file.base64, 'stl', file.path);
     setRenderResult(file.base64, stats);
     setPrintOpen(false);
     setCreateOpen(false);
@@ -70,7 +70,7 @@ export function Layout() {
     ]);
     if (!file) return;
 
-    setImportedModel(file.base64, '3mf');
+    setImportedModel(file.base64, '3mf', file.path);
     setCreateOpen(false);
     setModifyOpen(false);
     setPartsOpen(false);
