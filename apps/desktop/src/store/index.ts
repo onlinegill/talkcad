@@ -303,6 +303,8 @@ export const useSpecsStore = create<SpecsState>()(
 
 interface RenderState {
   stlData: string | null;
+  importedModelData: string | null;
+  importedModelFormat: 'stl' | '3mf' | null;
   stats: RenderStats | null;
   isRendering: boolean;
   errors: string[];
@@ -318,12 +320,15 @@ interface RenderState {
     warnings?: string[]
   ) => void;
   setRendering: (rendering: boolean) => void;
+  setImportedModel: (data: string | null, format: 'stl' | '3mf' | null) => void;
   clearRender: () => void;
   setCaptureViewport: (capture: (() => string | null) | null) => void;
 }
 
 export const useRenderStore = create<RenderState>((set) => ({
   stlData: null,
+  importedModelData: null,
+  importedModelFormat: null,
   stats: null,
   isRendering: false,
   errors: [],
@@ -339,8 +344,9 @@ export const useRenderStore = create<RenderState>((set) => ({
       isRendering: false,
     }),
   setRendering: (isRendering) => set({ isRendering }),
+  setImportedModel: (importedModelData, importedModelFormat) => set({ importedModelData, importedModelFormat }),
   clearRender: () =>
-    set({ stlData: null, stats: null, errors: [], warnings: [] }),
+    set({ stlData: null, importedModelData: null, importedModelFormat: null, stats: null, errors: [], warnings: [] }),
   setCaptureViewport: (captureViewport) => set({ captureViewport }),
 }));
 
