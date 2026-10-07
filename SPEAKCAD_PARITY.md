@@ -38,13 +38,15 @@ This fork now covers the core local conversational CAD-to-print workflow, but it
 - MCP STL rendering
 - MCP OpenSCAD -> G-code
 - MCP STL/3MF -> G-code
-- CI typecheck + MCP syntax validation
+- MCP resources for capabilities and workflow
+- MCP reusable design/print prompts
+- CI typecheck + MCP syntax validation + desktop build
 
 ## Missing for current SpeakCAD-class parity
 
 ### Direct hand tools
 - Face selection/picking in the viewport
-- Face-targeted placement for rectangular/circular/slot cuts
+- True face-topology selection/extrusion (viewport click-to-target placement is implemented)
 - Face extrusion
 - Interactive face-level fillet/chamfer tool
 - Viewport click-to-measure
@@ -54,12 +56,11 @@ This fork now covers the core local conversational CAD-to-print workflow, but it
 - True boolean editing of imported STL/3MF geometry
 - Editable ghost/previous-version overlay
 - Direct STL/3MF -> parametric rebuild workflow
-- Full 3MF viewport rendering and project round-trip
+- Full 3MF project round-trip editing (viewport preview is implemented)
 
 ### Printing
-- Saved printer favorites / last-used settings
-- Adhesion/brim/raft quick controls
-- Spool inventory tracking
+- Remote/cloud-synced printer favorites (local favorites/last-used settings are implemented)
+- Multi-spool inventory history (single-spool tracking is implemented)
 - Remote printer handoff
 
 ### Web/mobile
@@ -72,7 +73,7 @@ This fork now covers the core local conversational CAD-to-print workflow, but it
 - Streamable HTTP transport
 - OAuth 2.1 account auth
 - MCP Apps / interactive 3D view
-- Project/session resources and prompts
+- Project/session file resources (capability/workflow resources and prompts are implemented)
 
 ### CAD backends
 - STEP export
