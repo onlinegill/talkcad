@@ -21,7 +21,7 @@ This fork now covers the core local conversational CAD-to-print workflow, but it
 - Bambu-style .gcode.3mf export option
 - Material cost estimate
 - Local printer favorites and last-used print settings
-- Single-spool remaining-filament tracking and low-filament warning
+- Multi-spool local filament inventory with remaining-weight tracking and per-spool cost
 - Brim, raft, and skirt quick controls
 - Parametric starter shapes: box, cylinder, rounded plate, tray, mounting plate
 - Direct transforms: move, rotate, scale
@@ -36,6 +36,8 @@ This fork now covers the core local conversational CAD-to-print workflow, but it
 - Measurement readout from rendered model stats
 - Viewport click-to-target with face index and surface normal
 - Two-point viewport distance measurement
+- Previous-checkpoint ghost overlay for visual comparison
+- OpenSCAD boolean/transform operations on imported STL/3MF source files
 - Persistent multi-part assembly capture/positioning
 - Responsive core layout for tablet/mobile breakpoints
 - MCP stdio server
@@ -57,15 +59,15 @@ This fork now covers the core local conversational CAD-to-print workflow, but it
 - Viewport drag handles for transforms and duplication
 
 ### Mesh editing
-- True boolean editing of imported STL/3MF geometry
-- Editable ghost/previous-version overlay
+- Direct mesh-topology editing beyond OpenSCAD import-based booleans
+
 - Direct STL/3MF -> parametric rebuild workflow
 - Full 3MF project round-trip editing (preview and slicing are implemented)
 
 ### Printing
 - Remote/cloud-synced printer favorites
-- Multi-spool inventory history
-- Remote printer handoff
+- Cloud-synced spool inventory/history
+- Remote/cloud printer management beyond direct OctoPrint/Moonraker upload/print handoff
 
 ### Web/mobile
 - Browser-hosted editor
