@@ -8,3 +8,4 @@ export { ChatPanel } from './ChatPanel';
 export { SettingsModal } from './SettingsModal';
 
 export { PrintPanel } from './PrintPanel';
+export { CreatePanel } from './CreatePanel';
