@@ -1,0 +1,184 @@
+import { useEffect, useState } from 'react';
+import { useEditorStore, useRenderStore } from '../store';
+
+type SlicerInfo = {
+  path: string | null;
+  available: boolean;
+  version?: string;
+};
+
+export function PrintPanel() {
+  const code = useEditorStore((s) => s.code);
+  const setRendering = useRenderStore((s) => s.setRendering);
+
+  const [info, setInfo] = useState<SlicerInfo | null>(null);
+  const [printerProfile, setPrinterProfile] = useState('');
+  const [processProfile, setProcessProfile] = useState('');
+  const [filamentProfile, setFilamentProfile] = useState('');
+  const [autoOrient, setAutoOrient] = useState(true);
+  const [arrange, setArrange] = useState(true);
+  const [export3mf, setExport3mf] = useState(true);
+  const [status, setStatus] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    window.api.slicer.detect()
+      .then(setInfo)
+      .catch(() => setInfo({ path: null, available: false }));
+  }, []);
+
+  async function sliceCurrentModel() {
+    if (!code.trim()) {
+      setStatus('There is no OpenSCAD model to slice.');
+      return;
+    }
+
+    setBusy(true);
+    setRendering(true);
+    setStatus('Rendering final STL...');
+
+    try {
+      const rendered = await window.api.openscad.render(code, 'stl', { mode: 'final' });
+      if (!rendered.success || !rendered.output) {
+        setStatus(rendered.errors?.join('\n') || 'OpenSCAD failed to create the STL.');
+        return;
+      }
+
+      setStatus('Slicing with OrcaSlicer...');
+      const result = await window.api.slicer.sliceStl({
+        stlBase64: rendered.output,
+        options: {
+          printerProfile: printerProfile.trim() || undefined,
+          processProfile: processProfile.trim() || undefined,
+          filamentProfiles: filamentProfile.trim() ? [filamentProfile.trim()] : undefined,
+          autoOrient,
+          arrange,
+          ensureOnBed: true,
+          export3mf,
+          outputName: 'talkcad-model',
+        },
+      });
+
+      if (!result.success || !result.gcodeBase64) {
+        setStatus(result.error || result.stderr || 'Slicing failed.');
+        return;
+      }
+
+      const gcodePath = await window.api.dialog.saveFile({
+        title: 'Save sliced G-code',
+        defaultPath: result.gcodeName || 'talkcad-model.gcode',
+        filters: [{ name: 'G-code', extensions: ['gcode'] }],
+      });
+
+      if (gcodePath) {
+        await window.api.fsBinary.writeFile(gcodePath, result.gcodeBase64);
+      }
+
+      if (export3mf && result.project3mfBase64) {
+        const projectPath = await window.api.dialog.saveFile({
+          title: 'Save OrcaSlicer project',
+          defaultPath: result.project3mfName || 'talkcad-model.3mf',
+          filters: [{ name: '3MF Project', extensions: ['3mf'] }],
+        });
+        if (projectPath) {
+          await window.api.fsBinary.writeFile(projectPath, result.project3mfBase64);
+        }
+      }
+
+      setStatus(gcodePath ? `Done. G-code saved to ${gcodePath}` : 'Slicing completed.');
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error));
+    } finally {
+      setBusy(false);
+      setRendering(false);
+    }
+  }
+
+  return (
+    <div className="h-full overflow-auto p-5 bg-zinc-900">
+      <div className="max-w-3xl mx-auto space-y-5">
+        <div>
+          <h2 className="text-xl font-semibold">Print & Slice</h2>
+          <p className="text-sm text-zinc-400 mt-1">
+            Turn the current TalkCAD model into printer-ready G-code using OrcaSlicer.
+          </p>
+        </div>
+
+        <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="font-medium">OrcaSlicer</div>
+              <div className="text-xs text-zinc-400 break-all">
+                {info?.available ? info.path : 'Not detected'}
+              </div>
+            </div>
+            <span className={info?.available ? 'text-emerald-400 text-sm' : 'text-amber-400 text-sm'}>
+              {info?.available ? 'Ready' : 'Install/configure OrcaSlicer'}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid gap-4">
+          <label className="grid gap-1">
+            <span className="text-sm">Printer profile JSON</span>
+            <input
+              value={printerProfile}
+              onChange={(e) => setPrinterProfile(e.target.value)}
+              placeholder="/path/to/printer.json"
+              className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
+            />
+          </label>
+
+          <label className="grid gap-1">
+            <span className="text-sm">Process profile JSON</span>
+            <input
+              value={processProfile}
+              onChange={(e) => setProcessProfile(e.target.value)}
+              placeholder="/path/to/process.json"
+              className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
+            />
+          </label>
+
+          <label className="grid gap-1">
+            <span className="text-sm">Filament profile JSON</span>
+            <input
+              value={filamentProfile}
+              onChange={(e) => setFilamentProfile(e.target.value)}
+              placeholder="/path/to/filament.json"
+              className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
+            />
+          </label>
+        </div>
+
+        <div className="flex flex-wrap gap-5 text-sm">
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={autoOrient} onChange={(e) => setAutoOrient(e.target.checked)} />
+            Auto-orient
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={arrange} onChange={(e) => setArrange(e.target.checked)} />
+            Auto-arrange
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={export3mf} onChange={(e) => setExport3mf(e.target.checked)} />
+            Also save 3MF project
+          </label>
+        </div>
+
+        <button
+          onClick={sliceCurrentModel}
+          disabled={busy || !info?.available}
+          className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-700 disabled:text-zinc-400"
+        >
+          {busy ? 'Working…' : 'Slice current model'}
+        </button>
+
+        {status && (
+          <pre className="whitespace-pre-wrap text-sm rounded border border-zinc-700 bg-zinc-950 p-3 text-zinc-300">
+            {status}
+          </pre>
+        )}
+      </div>
+    </div>
+  );
+}
