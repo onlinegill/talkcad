@@ -31,6 +31,8 @@ export function ModifyPanel({ onApplied }: { onApplied?: () => void }) {
   const code = useEditorStore((s) => s.code);
   const setCode = useEditorStore((s) => s.setCode);
   const stats = useRenderStore((s) => s.stats);
+  const selectedPoint = useRenderStore((s) => s.selectedPoint);
+  const selectedNormal = useRenderStore((s) => s.selectedNormal);
   const [operation, setOperation] = useState<Operation>('translate');
 
   const [x, setX] = useState(0);
@@ -242,6 +244,34 @@ ${code}
             <Measure label="Depth" value={stats.dimensions.y} unit="mm" />
             <Measure label="Height" value={stats.dimensions.z} unit="mm" />
             <Measure label="Volume" value={stats.volume} unit="mm³" />
+          </div>
+        )}
+
+        {selectedPoint && (
+          <div className="rounded border border-amber-500/40 bg-amber-500/10 p-3 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="text-sm flex-1">
+              <div className="text-amber-300 font-medium">Viewport target selected</div>
+              <div className="text-zinc-400 text-xs">
+                X {selectedPoint.x.toFixed(2)} · Y {selectedPoint.y.toFixed(2)} · Z {selectedPoint.z.toFixed(2)}
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setX(Number(selectedPoint.x.toFixed(3)));
+                setY(Number(selectedPoint.y.toFixed(3)));
+                setZ(Number(selectedPoint.z.toFixed(3)));
+
+                if (selectedNormal) {
+                  const ax = Math.abs(selectedNormal.x);
+                  const ay = Math.abs(selectedNormal.y);
+                  const az = Math.abs(selectedNormal.z);
+                  setAxis(ax >= ay && ax >= az ? 'x' : ay >= az ? 'y' : 'z');
+                }
+              }}
+              className="px-3 py-1.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-sm"
+            >
+              Use target for operation
+            </button>
           </div>
         )}
 
