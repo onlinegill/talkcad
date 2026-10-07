@@ -18,9 +18,11 @@ node services/mcp/server.mjs
 
 ## Tools
 
+- `talkcad_create_primitive` — create OpenSCAD source for a box, cylinder, or sphere.
 - `talkcad_validate_scad` — compile/validate OpenSCAD source.
 - `talkcad_render_stl` — render OpenSCAD source to an STL file.
-- `talkcad_slice` — render and slice through OrcaSlicer to printer-ready G-code.
+- `talkcad_slice` — render and slice OpenSCAD through OrcaSlicer to printer-ready G-code.
+- `talkcad_slice_file` — slice an existing STL or 3MF file with OrcaSlicer.
 
 ## Example MCP client config
 
