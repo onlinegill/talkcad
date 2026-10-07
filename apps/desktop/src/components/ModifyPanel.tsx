@@ -278,7 +278,7 @@ ${sourceCode}
 
         {!code.trim() && importedModelPath && (
           <div className="rounded border border-blue-500/40 bg-blue-500/10 p-3 text-sm">
-            <div className="text-blue-300 font-medium">Imported ${importedModelFormat?.toUpperCase() || 'mesh'} editing enabled</div>
+            <div className="text-blue-300 font-medium">Imported {importedModelFormat?.toUpperCase() || 'mesh'} editing enabled</div>
             <div className="text-zinc-400 text-xs mt-1">
               The first modification will create OpenSCAD code that imports the original mesh, then applies the selected boolean/transform operation.
             </div>
