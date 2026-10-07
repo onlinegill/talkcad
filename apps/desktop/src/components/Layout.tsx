@@ -9,10 +9,12 @@ import { ChatPanel } from './ChatPanel';
 import { TitleBar } from './TitleBar';
 import { PrintPanel } from './PrintPanel';
 import { CreatePanel } from './CreatePanel';
+import { ModifyPanel } from './ModifyPanel';
 
 export function Layout() {
   const [printOpen, setPrintOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [modifyOpen, setModifyOpen] = useState(false);
   const setRenderResult = useRenderStore((state) => state.setRenderResult);
   const setImportedModel = useRenderStore((state) => state.setImportedModel);
   const { viewMode, filesCollapsed, specsCollapsed, setViewMode, toggleFiles, toggleSpecs } =
@@ -55,6 +57,7 @@ export function Layout() {
     setRenderResult(file.base64, stats);
     setPrintOpen(false);
     setCreateOpen(false);
+    setModifyOpen(false);
     setViewMode('preview');
   }, [setImportedModel, setRenderResult, setViewMode]);
 
@@ -66,6 +69,7 @@ export function Layout() {
 
     setImportedModel(file.base64, '3mf');
     setCreateOpen(false);
+    setModifyOpen(false);
     setPrintOpen(true);
   }, [setImportedModel]);
 
@@ -94,9 +98,9 @@ export function Layout() {
         {/* Center Panel */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Tabs */}
-          <div className="flex items-center gap-1 px-2 py-1 border-b border-zinc-700 bg-zinc-800/50">
+          <div className="flex items-center gap-1 px-2 py-1 border-b border-zinc-700 bg-zinc-800/50 overflow-x-auto whitespace-nowrap">
             <button
-              onClick={() => { setPrintOpen(false); setCreateOpen(false); setViewMode('code'); }}
+              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(false); setViewMode('code'); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
                 viewMode === 'code'
@@ -107,7 +111,7 @@ export function Layout() {
               Code
             </button>
             <button
-              onClick={() => { setPrintOpen(false); setCreateOpen(false); setViewMode('preview'); }}
+              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(false); setViewMode('preview'); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
                 viewMode === 'preview'
@@ -118,7 +122,7 @@ export function Layout() {
               Preview
             </button>
             <button
-              onClick={() => { setPrintOpen(false); setCreateOpen(false); setViewMode('split'); }}
+              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(false); setViewMode('split'); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
                 !printOpen && viewMode === 'split'
@@ -129,7 +133,7 @@ export function Layout() {
               Split
             </button>
             <button
-              onClick={() => { setPrintOpen(false); setCreateOpen(true); }}
+              onClick={() => { setPrintOpen(false); setModifyOpen(false); setCreateOpen(true); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
                 createOpen
@@ -140,7 +144,18 @@ export function Layout() {
               Create
             </button>
             <button
-              onClick={() => { setCreateOpen(false); setPrintOpen(true); }}
+              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(true); }}
+              className={clsx(
+                'px-3 py-1 text-sm rounded transition-colors',
+                modifyOpen
+                  ? 'bg-zinc-700 text-zinc-100'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700/50'
+              )}
+            >
+              Modify
+            </button>
+            <button
+              onClick={() => { setCreateOpen(false); setModifyOpen(false); setPrintOpen(true); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
                 printOpen
@@ -166,11 +181,12 @@ export function Layout() {
 
           {/* Code / Preview Area */}
           <div className="flex-1 overflow-hidden">
-            {createOpen && <CreatePanel onCreated={() => { setCreateOpen(false); setPrintOpen(false); setViewMode('split'); }} />}
-            {!createOpen && printOpen && <PrintPanel />}
-            {!createOpen && !printOpen && viewMode === 'code' && <CodeEditor />}
-            {!createOpen && !printOpen && viewMode === 'preview' && <Viewport />}
-            {!createOpen && !printOpen && viewMode === 'split' && (
+            {createOpen && <CreatePanel onCreated={() => { setCreateOpen(false); setModifyOpen(false); setPrintOpen(false); setViewMode('split'); }} />}
+            {!createOpen && modifyOpen && <ModifyPanel onApplied={() => { setModifyOpen(false); setViewMode('split'); }} />}
+            {!createOpen && !modifyOpen && printOpen && <PrintPanel />}
+            {!createOpen && !modifyOpen && !printOpen && viewMode === 'code' && <CodeEditor />}
+            {!createOpen && !modifyOpen && !printOpen && viewMode === 'preview' && <Viewport />}
+            {!createOpen && !modifyOpen && !printOpen && viewMode === 'split' && (
               <div className="flex h-full">
                 <div className="w-1/2 border-r border-zinc-700">
                   <CodeEditor />
