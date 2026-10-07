@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid, GizmoHelper, GizmoViewport, Line } from '@react-three/drei';
 import * as THREE from 'three';
@@ -24,10 +24,32 @@ export function Viewport() {
     isRendering,
     errors,
     selectedPoint,
+    selectedFaceIndex,
     setCaptureViewport,
     setSelection,
   } = useRenderStore();
   const { meshDisplayMode, meshColor, setMeshDisplayMode, showAxisGizmo, setShowAxisGizmo, cameraMode, setCameraMode } = useSettingsStore();
+
+  const [measureMode, setMeasureMode] = useState(false);
+  const [measurePoints, setMeasurePoints] = useState<THREE.Vector3[]>([]);
+
+  const measuredDistance = useMemo(() => {
+    if (measurePoints.length !== 2) return null;
+    return measurePoints[0].distanceTo(measurePoints[1]);
+  }, [measurePoints]);
+
+  const handlePick = useCallback((
+    point: { x: number; y: number; z: number },
+    normal: { x: number; y: number; z: number } | null,
+    faceIndex: number | null
+  ) => {
+    if (measureMode) {
+      const vector = new THREE.Vector3(point.x, point.y, point.z);
+      setMeasurePoints((current) => current.length >= 2 ? [vector] : [...current, vector]);
+      return;
+    }
+    setSelection(point, normal, faceIndex);
+  }, [measureMode, setSelection]);
 
   // Store the gl context reference for viewport capture
   const glRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -192,7 +214,7 @@ export function Viewport() {
               geometry={geometryOrError.geometry}
               wireframe={meshDisplayMode === 'wireframe'}
               color={meshColor}
-              onPick={(point, normal) => setSelection(point, normal)}
+              onPick={handlePick}
             />
           )}
 
@@ -200,15 +222,33 @@ export function Viewport() {
             <ThreeMFModel
               group={threeMfOrError.group}
               wireframe={meshDisplayMode === 'wireframe'}
-              onPick={(point, normal) => setSelection(point, normal)}
+              onPick={handlePick}
             />
           )}
 
-          {selectedPoint && (
+          {!measureMode && selectedPoint && (
             <mesh position={[selectedPoint.x, selectedPoint.y, selectedPoint.z]}>
               <sphereGeometry args={[1.5, 20, 20]} />
               <meshBasicMaterial color="#f59e0b" />
             </mesh>
+          )}
+
+          {measurePoints.map((point, index) => (
+            <mesh key={index} position={[point.x, point.y, point.z]}>
+              <sphereGeometry args={[1.2, 18, 18]} />
+              <meshBasicMaterial color="#22c55e" />
+            </mesh>
+          ))}
+
+          {measurePoints.length === 2 && (
+            <Line
+              points={[
+                [measurePoints[0].x, measurePoints[0].y, measurePoints[0].z],
+                [measurePoints[1].x, measurePoints[1].y, measurePoints[1].z],
+              ]}
+              color="#22c55e"
+              lineWidth={2}
+            />
           )}
           {geometryOrError.geometry && (
             <AutoFitView geometry={geometryOrError.geometry} controlsRef={controlsRef} />
@@ -276,14 +316,43 @@ export function Viewport() {
         Click: target point | Orbit: drag | Pan: right-drag | Zoom: scroll
       </div>
 
-      {selectedPoint && (
+      {!measureMode && selectedPoint && (
         <div className="absolute top-3 left-3 text-xs bg-zinc-900/90 border border-zinc-700 rounded px-2 py-1 text-amber-300">
           Target: {selectedPoint.x.toFixed(2)}, {selectedPoint.y.toFixed(2)}, {selectedPoint.z.toFixed(2)}
+          {selectedFaceIndex !== null ? ` · Face ${selectedFaceIndex}` : ''}
+        </div>
+      )}
+
+      {measureMode && (
+        <div className="absolute top-3 left-3 text-xs bg-zinc-900/90 border border-green-500/40 rounded px-2 py-1 text-green-300">
+          {measuredDistance !== null
+            ? `Distance: ${measuredDistance.toFixed(2)} mm`
+            : measurePoints.length === 0
+              ? 'Measure: click first point'
+              : 'Measure: click second point'}
         </div>
       )}
 
       {/* View controls */}
-      <div className="absolute top-3 right-3 flex gap-2">
+      <div className="absolute top-3 right-3 flex gap-2 flex-wrap justify-end">
+        <button
+          onClick={() => {
+            setMeasureMode((enabled) => {
+              const next = !enabled;
+              if (!next) setMeasurePoints([]);
+              return next;
+            });
+          }}
+          className={`px-2 py-1.5 text-xs rounded transition-colors ${
+            measureMode
+              ? 'bg-green-600/80 text-white'
+              : 'bg-zinc-800/90 hover:bg-zinc-700/90 text-zinc-300'
+          }`}
+          title="Measure distance between two points"
+        >
+          Measure
+        </button>
+
         {/* Camera mode toggle */}
         <button
           onClick={() => setCameraMode(cameraMode === 'perspective' ? 'orthographic' : 'perspective')}
@@ -403,7 +472,8 @@ interface STLModelProps {
   color?: string;
   onPick?: (
     point: { x: number; y: number; z: number },
-    normal: { x: number; y: number; z: number } | null
+    normal: { x: number; y: number; z: number } | null,
+    faceIndex: number | null
   ) => void;
 }
 
@@ -420,7 +490,8 @@ function STLModel({ geometry, wireframe = false, color = '#60a5fa', onPick }: ST
         }
         onPick?.(
           { x: point.x, y: point.y, z: point.z },
-          normal ? { x: normal.x, y: normal.y, z: normal.z } : null
+          normal ? { x: normal.x, y: normal.y, z: normal.z } : null,
+          typeof event.faceIndex === 'number' ? event.faceIndex : null
         );
       }}
     >
@@ -444,7 +515,8 @@ function ThreeMFModel({
   wireframe?: boolean;
   onPick?: (
     point: { x: number; y: number; z: number },
-    normal: { x: number; y: number; z: number } | null
+    normal: { x: number; y: number; z: number } | null,
+    faceIndex: number | null
   ) => void;
 }) {
   useEffect(() => {
@@ -471,7 +543,8 @@ function ThreeMFModel({
         }
         onPick?.(
           { x: point.x, y: point.y, z: point.z },
-          normal ? { x: normal.x, y: normal.y, z: normal.z } : null
+          normal ? { x: normal.x, y: normal.y, z: normal.z } : null,
+          typeof event.faceIndex === 'number' ? event.faceIndex : null
         );
       }}
     />
