@@ -10,11 +10,13 @@ import { TitleBar } from './TitleBar';
 import { PrintPanel } from './PrintPanel';
 import { CreatePanel } from './CreatePanel';
 import { ModifyPanel } from './ModifyPanel';
+import { PartsPanel } from './PartsPanel';
 
 export function Layout() {
   const [printOpen, setPrintOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [modifyOpen, setModifyOpen] = useState(false);
+  const [partsOpen, setPartsOpen] = useState(false);
   const setRenderResult = useRenderStore((state) => state.setRenderResult);
   const setImportedModel = useRenderStore((state) => state.setImportedModel);
   const { viewMode, filesCollapsed, specsCollapsed, setViewMode, toggleFiles, toggleSpecs } =
@@ -58,6 +60,7 @@ export function Layout() {
     setPrintOpen(false);
     setCreateOpen(false);
     setModifyOpen(false);
+    setPartsOpen(false);
     setViewMode('preview');
   }, [setImportedModel, setRenderResult, setViewMode]);
 
@@ -70,6 +73,7 @@ export function Layout() {
     setImportedModel(file.base64, '3mf');
     setCreateOpen(false);
     setModifyOpen(false);
+    setPartsOpen(false);
     setPrintOpen(true);
   }, [setImportedModel]);
 
@@ -100,7 +104,7 @@ export function Layout() {
           {/* Tabs */}
           <div className="flex items-center gap-1 px-2 py-1 border-b border-zinc-700 bg-zinc-800/50 overflow-x-auto whitespace-nowrap">
             <button
-              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(false); setViewMode('code'); }}
+              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(false); setPartsOpen(false); setViewMode('code'); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
                 viewMode === 'code'
@@ -111,7 +115,7 @@ export function Layout() {
               Code
             </button>
             <button
-              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(false); setViewMode('preview'); }}
+              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(false); setPartsOpen(false); setViewMode('preview'); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
                 viewMode === 'preview'
@@ -122,7 +126,7 @@ export function Layout() {
               Preview
             </button>
             <button
-              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(false); setViewMode('split'); }}
+              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(false); setPartsOpen(false); setViewMode('split'); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
                 !printOpen && viewMode === 'split'
@@ -133,7 +137,7 @@ export function Layout() {
               Split
             </button>
             <button
-              onClick={() => { setPrintOpen(false); setModifyOpen(false); setCreateOpen(true); }}
+              onClick={() => { setPrintOpen(false); setModifyOpen(false); setPartsOpen(false); setCreateOpen(true); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
                 createOpen
@@ -144,7 +148,7 @@ export function Layout() {
               Create
             </button>
             <button
-              onClick={() => { setPrintOpen(false); setCreateOpen(false); setModifyOpen(true); }}
+              onClick={() => { setPrintOpen(false); setCreateOpen(false); setPartsOpen(false); setModifyOpen(true); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
                 modifyOpen
@@ -155,7 +159,7 @@ export function Layout() {
               Modify
             </button>
             <button
-              onClick={() => { setCreateOpen(false); setModifyOpen(false); setPrintOpen(true); }}
+              onClick={() => { setCreateOpen(false); setModifyOpen(false); setPartsOpen(false); setPrintOpen(true); }}
               className={clsx(
                 'px-3 py-1 text-sm rounded transition-colors',
                 printOpen
@@ -182,7 +186,7 @@ export function Layout() {
           {/* Code / Preview Area */}
           <div className="flex-1 overflow-hidden">
             {createOpen && <CreatePanel onCreated={() => { setCreateOpen(false); setModifyOpen(false); setPrintOpen(false); setViewMode('split'); }} />}
-            {!createOpen && modifyOpen && <ModifyPanel onApplied={() => { setModifyOpen(false); setViewMode('split'); }} />}
+            {!createOpen && modifyOpen && <ModifyPanel onApplied={() => { setModifyOpen(false); setPartsOpen(false); setViewMode('split'); }} />}
             {!createOpen && !modifyOpen && printOpen && <PrintPanel />}
             {!createOpen && !modifyOpen && !printOpen && viewMode === 'code' && <CodeEditor />}
             {!createOpen && !modifyOpen && !printOpen && viewMode === 'preview' && <Viewport />}
