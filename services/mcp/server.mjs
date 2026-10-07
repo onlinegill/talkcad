@@ -116,7 +116,56 @@ async function sliceScad(args) {
   });
 }
 
+
+function primitiveScad(args) {
+  const shape = args.shape || 'box';
+  const width = Number(args.width ?? 60);
+  const depth = Number(args.depth ?? 40);
+  const height = Number(args.height ?? 20);
+  const diameter = Number(args.diameter ?? width);
+
+  if (shape === 'cylinder') {
+    return `$fn = 96;\ncylinder(d = ${diameter}, h = ${height});\n`;
+  }
+  if (shape === 'sphere') {
+    return `$fn = 96;\nsphere(d = ${diameter});\n`;
+  }
+  return `cube([${width}, ${depth}, ${height}]);\n`;
+}
+
+async function sliceFile(args) {
+  const inputPath = resolve(args.inputPath);
+  const outputDir = resolve(args.outputDir || process.cwd());
+  await mkdir(outputDir, { recursive: true });
+
+  const sliceArgs = [inputPath];
+  const settings = [args.processProfile, args.printerProfile].filter(Boolean);
+  if (settings.length) sliceArgs.push('--load-settings', settings.join(';'));
+  if (args.filamentProfile) sliceArgs.push('--load-filaments', args.filamentProfile);
+  if (args.autoOrient !== false) sliceArgs.push('--orient', '1');
+  if (args.arrange !== false) sliceArgs.push('--arrange', '1');
+  sliceArgs.push('--ensure-on-bed', '--outputdir', outputDir, '--slice', '0');
+
+  const sliced = await run(orcaSlicer(), sliceArgs);
+  if (sliced.code !== 0) throw new Error(sliced.stderr || 'OrcaSlicer failed');
+  return { inputPath, outputDir, stdout: sliced.stdout, stderr: sliced.stderr };
+}
+
 const tools = [
+  {
+    name: 'talkcad_create_primitive',
+    description: 'Create simple parametric OpenSCAD source for a box, cylinder, or sphere.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        shape: { type: 'string', enum: ['box', 'cylinder', 'sphere'] },
+        width: { type: 'number' },
+        depth: { type: 'number' },
+        height: { type: 'number' },
+        diameter: { type: 'number' }
+      }
+    },
+  },
   {
     name: 'talkcad_validate_scad',
     description: 'Validate OpenSCAD by compiling it with the local OpenSCAD executable.',
@@ -140,6 +189,23 @@ const tools = [
     },
   },
   {
+    name: 'talkcad_slice_file',
+    description: 'Slice an existing STL or 3MF file to G-code using OrcaSlicer.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        inputPath: { type: 'string' },
+        outputDir: { type: 'string' },
+        printerProfile: { type: 'string' },
+        processProfile: { type: 'string' },
+        filamentProfile: { type: 'string' },
+        autoOrient: { type: 'boolean' },
+        arrange: { type: 'boolean' }
+      },
+      required: ['inputPath']
+    },
+  },
+  {
     name: 'talkcad_slice',
     description: 'Render OpenSCAD to STL and slice it to G-code using OrcaSlicer.',
     inputSchema: {
@@ -160,8 +226,10 @@ const tools = [
 
 async function callTool(name, args) {
   switch (name) {
+    case 'talkcad_create_primitive': return { code: primitiveScad(args) };
     case 'talkcad_validate_scad': return validateScad(args);
     case 'talkcad_render_stl': return renderStl(args);
+    case 'talkcad_slice_file': return sliceFile(args);
     case 'talkcad_slice': return sliceScad(args);
     default: throw new Error(`Unknown tool: ${name}`);
   }
