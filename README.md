@@ -329,3 +329,23 @@ pnpm cli
 ## License
 
 MIT — See [LICENSE](./LICENSE) for details.
+
+
+## Browser-hosted mode
+
+TalkCAD can run the same renderer in a normal browser with a local Node backend:
+
+```bash
+pnpm web
+```
+
+Then open `http://127.0.0.1:8787`. The backend provides OpenSCAD rendering, OrcaSlicer slicing, optional CadQuery STEP export, LLM proxying, printer handoff, built-in skills, and a stateless MCP HTTP endpoint at `/mcp`.
+
+Optional environment variables:
+
+- `TALKCAD_WEB_PORT` — web port (default 8787)
+- `TALKCAD_WEB_HOST` — bind host (default 127.0.0.1)
+- `OPENSCAD_PATH` — custom OpenSCAD executable
+- `ORCASLICER_PATH` — custom OrcaSlicer executable
+- `CADQUERY_PYTHON` — Python executable containing CadQuery
+- `TALKCAD_MCP_TOKEN` — optional bearer token for HTTP MCP requests
