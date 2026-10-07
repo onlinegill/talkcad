@@ -3,6 +3,7 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Grid, GizmoHelper, GizmoViewport, Line } from '@react-three/drei';
 import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
+import { ThreeMFLoader } from 'three/examples/jsm/loaders/3MFLoader.js';
 import { useRenderStore, useSettingsStore } from '../store';
 
 function decodeBase64ToBytes(base64: string): Uint8Array {
@@ -15,7 +16,17 @@ function decodeBase64ToBytes(base64: string): Uint8Array {
 }
 
 export function Viewport() {
-  const { stlData, stats, isRendering, errors, selectedPoint, setCaptureViewport, setSelection } = useRenderStore();
+  const {
+    stlData,
+    importedModelData,
+    importedModelFormat,
+    stats,
+    isRendering,
+    errors,
+    selectedPoint,
+    setCaptureViewport,
+    setSelection,
+  } = useRenderStore();
   const { meshDisplayMode, meshColor, setMeshDisplayMode, showAxisGizmo, setShowAxisGizmo, cameraMode, setCameraMode } = useSettingsStore();
 
   // Store the gl context reference for viewport capture
@@ -61,10 +72,37 @@ export function Viewport() {
     }
   }, [stlData]);
 
+  const threeMfOrError = useMemo((): { group: THREE.Group | null; error?: string } => {
+    if (!importedModelData || importedModelFormat !== '3mf') return { group: null };
+    try {
+      const bytes = decodeBase64ToBytes(importedModelData);
+      const loader = new ThreeMFLoader();
+      const group = loader.parse(bytes.buffer as ArrayBuffer);
+      return { group };
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      return { group: null, error: msg };
+    }
+  }, [importedModelData, importedModelFormat]);
+
   useEffect(() => {
     if (!geometryOrError.geometry) return;
     return () => geometryOrError.geometry?.dispose();
   }, [geometryOrError.geometry]);
+
+  useEffect(() => {
+    const group = threeMfOrError.group;
+    if (!group) return;
+    return () => {
+      group.traverse((child) => {
+        const mesh = child as THREE.Mesh;
+        mesh.geometry?.dispose?.();
+        const material = mesh.material;
+        if (Array.isArray(material)) material.forEach((m) => m.dispose?.());
+        else material?.dispose?.();
+      });
+    };
+  }, [threeMfOrError.group]);
 
   if (errors.length > 0) {
     return (
@@ -95,7 +133,7 @@ export function Viewport() {
     );
   }
 
-  if (!stlData) {
+  if (!stlData && !threeMfOrError.group) {
     return (
       <div className="h-full flex items-center justify-center bg-zinc-900 text-zinc-500">
         <div className="text-center">
@@ -114,7 +152,7 @@ export function Viewport() {
     );
   }
 
-  if (geometryOrError.error) {
+  if (geometryOrError.error || threeMfOrError.error) {
     return (
       <div className="h-full flex items-center justify-center bg-zinc-900 p-4">
         <div className="text-center max-w-md">
@@ -125,7 +163,7 @@ export function Viewport() {
           </div>
           <p className="text-red-400 font-medium mb-2">Preview Error</p>
           <pre className="text-xs text-zinc-400 bg-zinc-800 p-3 rounded overflow-auto max-h-40 text-left">
-            {geometryOrError.error}
+            {geometryOrError.error || threeMfOrError.error}
           </pre>
         </div>
       </div>
@@ -157,13 +195,27 @@ export function Viewport() {
               onPick={(point, normal) => setSelection(point, normal)}
             />
           )}
+
+          {threeMfOrError.group && (
+            <ThreeMFModel
+              group={threeMfOrError.group}
+              wireframe={meshDisplayMode === 'wireframe'}
+              onPick={(point, normal) => setSelection(point, normal)}
+            />
+          )}
+
           {selectedPoint && (
             <mesh position={[selectedPoint.x, selectedPoint.y, selectedPoint.z]}>
               <sphereGeometry args={[1.5, 20, 20]} />
               <meshBasicMaterial color="#f59e0b" />
             </mesh>
           )}
-          <AutoFitView geometry={geometryOrError.geometry} controlsRef={controlsRef} />
+          {geometryOrError.geometry && (
+            <AutoFitView geometry={geometryOrError.geometry} controlsRef={controlsRef} />
+          )}
+          {threeMfOrError.group && (
+            <AutoFitObject object={threeMfOrError.group} controlsRef={controlsRef} />
+          )}
 
           <OrbitControls
             ref={controlsRef}
@@ -381,6 +433,91 @@ function STLModel({ geometry, wireframe = false, color = '#60a5fa', onPick }: ST
       />
     </mesh>
   );
+}
+
+function ThreeMFModel({
+  group,
+  wireframe = false,
+  onPick,
+}: {
+  group: THREE.Group;
+  wireframe?: boolean;
+  onPick?: (
+    point: { x: number; y: number; z: number },
+    normal: { x: number; y: number; z: number } | null
+  ) => void;
+}) {
+  useEffect(() => {
+    group.traverse((child) => {
+      const mesh = child as THREE.Mesh;
+      if (!mesh.isMesh) return;
+      const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      for (const material of materials) {
+        const standard = material as THREE.MeshStandardMaterial;
+        if ('wireframe' in standard) standard.wireframe = wireframe;
+      }
+    });
+  }, [group, wireframe]);
+
+  return (
+    <primitive
+      object={group}
+      onPointerDown={(event: any) => {
+        event.stopPropagation();
+        const point = event.point as THREE.Vector3;
+        let normal: THREE.Vector3 | null = null;
+        if (event.face?.normal) {
+          normal = event.face.normal.clone().transformDirection(event.object.matrixWorld).normalize();
+        }
+        onPick?.(
+          { x: point.x, y: point.y, z: point.z },
+          normal ? { x: normal.x, y: normal.y, z: normal.z } : null
+        );
+      }}
+    />
+  );
+}
+
+function AutoFitObject({
+  object,
+  controlsRef,
+}: {
+  object: THREE.Object3D;
+  controlsRef: React.RefObject<any>;
+}) {
+  const { camera } = useThree();
+  const didFitRef = useRef(false);
+
+  useEffect(() => {
+    if (didFitRef.current) return;
+    const box = new THREE.Box3().setFromObject(object);
+    if (box.isEmpty()) return;
+
+    const sphere = new THREE.Sphere();
+    box.getBoundingSphere(sphere);
+    if (!Number.isFinite(sphere.radius) || sphere.radius <= 0) return;
+
+    const center = sphere.center.clone();
+    const radius = sphere.radius;
+    const distance = Math.max(20, radius * 2.5);
+
+    camera.position.set(center.x + distance, center.y + distance, center.z + distance);
+    camera.near = Math.max(0.1, radius / 100);
+    camera.far = Math.max(camera.far, radius * 100);
+    camera.updateProjectionMatrix();
+
+    const controls = controlsRef.current;
+    if (controls) {
+      controls.target.copy(center);
+      controls.update();
+    } else {
+      camera.lookAt(center);
+    }
+
+    didFitRef.current = true;
+  }, [camera, controlsRef, object]);
+
+  return null;
 }
 
 /** Colored axis lines at origin: X=red, Y=green, Z=blue */
