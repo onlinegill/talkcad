@@ -414,48 +414,37 @@ export function PrintPanel() {
 
         {estimate && (
           <>
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-            <div className="rounded border border-zinc-700 bg-zinc-800/50 p-3">
-              <div className="text-xs text-zinc-400">Estimated time</div>
-              <div className="font-medium">{estimate.time ? Math.round(estimate.time / 60) + ' min' : '—'}</div>
-            </div>
-            <div className="rounded border border-zinc-700 bg-zinc-800/50 p-3">
-              <div className="text-xs text-zinc-400">Filament</div>
-              <div className="font-medium">{estimate.grams ? estimate.grams.toFixed(1) + ' g' : '—'}</div>
-            </div>
-            <div className="rounded border border-zinc-700 bg-zinc-800/50 p-3">
-              <div className="text-xs text-zinc-400">Filament length</div>
-              <div className="font-medium">{estimate.mm ? Math.round(estimate.mm) + ' mm' : '—'}</div>
-            </div>
-            <div className="rounded border border-zinc-700 bg-zinc-800/50 p-3">
-              <div className="text-xs text-zinc-400">Material cost</div>
-              <div className="font-medium">
-                {estimate.grams ? '
-
-        {status && (
-          <pre className="whitespace-pre-wrap text-sm rounded border border-zinc-700 bg-zinc-950 p-3 text-zinc-300">
-            {status}
-          </pre>
-        )}
-      </div>
-    </div>
-  );
-}
- + ((estimate.grams / 1000) * filamentCostPerKg).toFixed(2) : '—'}
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+              <div className="rounded border border-zinc-700 bg-zinc-800/50 p-3">
+                <div className="text-xs text-zinc-400">Estimated time</div>
+                <div className="font-medium">{estimate.time ? Math.round(estimate.time / 60) + ' min' : '—'}</div>
+              </div>
+              <div className="rounded border border-zinc-700 bg-zinc-800/50 p-3">
+                <div className="text-xs text-zinc-400">Filament</div>
+                <div className="font-medium">{estimate.grams ? estimate.grams.toFixed(1) + ' g' : '—'}</div>
+              </div>
+              <div className="rounded border border-zinc-700 bg-zinc-800/50 p-3">
+                <div className="text-xs text-zinc-400">Filament length</div>
+                <div className="font-medium">{estimate.mm ? Math.round(estimate.mm) + ' mm' : '—'}</div>
+              </div>
+              <div className="rounded border border-zinc-700 bg-zinc-800/50 p-3">
+                <div className="text-xs text-zinc-400">Material cost</div>
+                <div className="font-medium">
+                  {estimate.grams ? '$' + ((estimate.grams / 1000) * filamentCostPerKg).toFixed(2) : '—'}
+                </div>
               </div>
             </div>
-          </div>
-          <label className="grid gap-1 max-w-xs">
-            <span className="text-xs text-zinc-400">Filament cost per kg</span>
-            <input
-              type="number"
-              min={0}
-              step={1}
-              value={filamentCostPerKg}
-              onChange={(e) => setFilamentCostPerKg(Number(e.target.value))}
-              className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
-            />
-          </label>
+            <label className="grid gap-1 max-w-xs">
+              <span className="text-xs text-zinc-400">Filament cost per kg</span>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                value={filamentCostPerKg}
+                onChange={(e) => setFilamentCostPerKg(Number(e.target.value))}
+                className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
+              />
+            </label>
           </>
         )}
 
