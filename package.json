@@ -7,7 +7,8 @@
     "dev": "pnpm --filter talkcad-desktop dev",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "mcp": "node services/mcp/server.mjs"
   },
   "keywords": [
     "cad",
