@@ -24,6 +24,8 @@ export function PrintPanel() {
   const [profiles, setProfiles] = useState<OrcaProfile[]>([]);
   const [printerProfile, setPrinterProfile] = useState('');
   const [printerSearch, setPrinterSearch] = useState('');
+  const [favoritePrinters, setFavoritePrinters] = useState<string[]>([]);
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [filamentCostPerKg, setFilamentCostPerKg] = useState(20);
   const [processProfile, setProcessProfile] = useState('');
   const [filamentProfile, setFilamentProfile] = useState('');
@@ -57,6 +59,69 @@ export function PrintPanel() {
       .then(setProfiles)
       .catch(() => setProfiles([]));
   }, []);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('talkcad-print-settings');
+      if (!raw) return;
+      const saved = JSON.parse(raw) as Record<string, unknown>;
+      if (typeof saved.printerProfile === 'string') setPrinterProfile(saved.printerProfile);
+      if (typeof saved.processProfile === 'string') setProcessProfile(saved.processProfile);
+      if (typeof saved.filamentProfile === 'string') setFilamentProfile(saved.filamentProfile);
+      if (typeof saved.layerHeight === 'number') setLayerHeight(saved.layerHeight);
+      if (typeof saved.infillDensity === 'number') setInfillDensity(saved.infillDensity);
+      if (typeof saved.infillPattern === 'string') setInfillPattern(saved.infillPattern);
+      if (typeof saved.wallLoops === 'number') setWallLoops(saved.wallLoops);
+      if (typeof saved.enableSupport === 'boolean') setEnableSupport(saved.enableSupport);
+      if (typeof saved.supportType === 'string') setSupportType(saved.supportType);
+      if (typeof saved.brimType === 'string') setBrimType(saved.brimType);
+      if (typeof saved.brimWidth === 'number') setBrimWidth(saved.brimWidth);
+      if (typeof saved.raftLayers === 'number') setRaftLayers(saved.raftLayers);
+      if (typeof saved.skirtLoops === 'number') setSkirtLoops(saved.skirtLoops);
+      if (typeof saved.filamentCostPerKg === 'number') setFilamentCostPerKg(saved.filamentCostPerKg);
+      if (Array.isArray(saved.favoritePrinters)) {
+        setFavoritePrinters(saved.favoritePrinters.filter((value): value is string => typeof value === 'string'));
+      }
+    } catch {
+      // Ignore stale or malformed saved settings.
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('talkcad-print-settings', JSON.stringify({
+      printerProfile,
+      processProfile,
+      filamentProfile,
+      layerHeight,
+      infillDensity,
+      infillPattern,
+      wallLoops,
+      enableSupport,
+      supportType,
+      brimType,
+      brimWidth,
+      raftLayers,
+      skirtLoops,
+      filamentCostPerKg,
+      favoritePrinters,
+    }));
+  }, [
+    printerProfile,
+    processProfile,
+    filamentProfile,
+    layerHeight,
+    infillDensity,
+    infillPattern,
+    wallLoops,
+    enableSupport,
+    supportType,
+    brimType,
+    brimWidth,
+    raftLayers,
+    skirtLoops,
+    filamentCostPerKg,
+    favoritePrinters,
+  ]);
 
   async function sliceCurrentModel() {
     if (source === 'code' && !code.trim()) {
@@ -211,12 +276,18 @@ export function PrintPanel() {
         <div className="grid gap-4">
           <label className="grid gap-1">
             <span className="text-sm">Search printer profiles</span>
+            <div className="flex gap-2">
             <input
               value={printerSearch}
               onChange={(e) => setPrinterSearch(e.target.value)}
               placeholder="Bambu, Prusa, Creality..."
-              className="bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
+              className="flex-1 min-w-0 bg-zinc-950 border border-zinc-700 rounded px-3 py-2 text-sm"
             />
+            <label className="flex items-center gap-1 text-xs text-zinc-400 whitespace-nowrap">
+              <input type="checkbox" checked={favoritesOnly} onChange={(e) => setFavoritesOnly(e.target.checked)} />
+              Favorites
+            </label>
+            </div>
           </label>
 
           <label className="grid gap-1">
@@ -229,11 +300,28 @@ export function PrintPanel() {
               <option value="">Choose printer profile…</option>
               {profiles
                 .filter((p) => p.kind === 'printer')
+                .filter((p) => !favoritesOnly || favoritePrinters.includes(p.path))
                 .filter((p) => !printerSearch.trim() || p.name.toLowerCase().includes(printerSearch.toLowerCase()))
+                .sort((a, b) => Number(favoritePrinters.includes(b.path)) - Number(favoritePrinters.includes(a.path)) || a.name.localeCompare(b.name))
                 .map((p) => (
-                  <option key={p.path} value={p.path}>{p.name}</option>
+                  <option key={p.path} value={p.path}>
+                    {favoritePrinters.includes(p.path) ? '★ ' : ''}{p.name}
+                  </option>
                 ))}
             </select>
+            {printerProfile && (
+              <button
+                type="button"
+                onClick={() => setFavoritePrinters((current) =>
+                  current.includes(printerProfile)
+                    ? current.filter((path) => path !== printerProfile)
+                    : [...current, printerProfile]
+                )}
+                className="justify-self-start text-xs text-amber-300 hover:text-amber-200"
+              >
+                {favoritePrinters.includes(printerProfile) ? '★ Remove favorite' : '☆ Add favorite'}
+              </button>
+            )}
           </label>
 
           <label className="grid gap-1">
