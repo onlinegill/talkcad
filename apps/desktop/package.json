@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src electron",
-    "cli": "npx tsx scripts/cli-agent.ts"
+    "cli": "npx tsx scripts/cli-agent.ts",
+    "build:web": "vite build"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.6.0",
