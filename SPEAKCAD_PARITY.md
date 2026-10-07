@@ -40,6 +40,9 @@ This fork now covers the core local conversational CAD-to-print workflow, but it
 - OpenSCAD boolean/transform operations on imported STL/3MF source files
 - Persistent multi-part assembly capture/positioning
 - Responsive core layout for tablet/mobile breakpoints
+- Browser-hosted local editor using the same React renderer
+- Local browser backend for OpenSCAD, OrcaSlicer, CadQuery, LLM proxying and printer handoff
+- Stateless MCP HTTP endpoint with optional bearer-token protection
 - MCP stdio server
 - MCP primitive creation
 - MCP OpenSCAD validation
@@ -73,13 +76,12 @@ This fork now covers the core local conversational CAD-to-print workflow, but it
 - Remote/cloud printer management beyond direct OctoPrint/Moonraker upload/print handoff
 
 ### Web/mobile
-- Browser-hosted editor
 - Full browser/mobile shell beyond the responsive core layout
 - Touch-optimized drag handles and tool placement
 - Cloud project sync/accounts
 
 ### MCP
-- Streamable HTTP transport
+- Full modern 2026 MCP transport semantics beyond the current stateless HTTP bridge
 - OAuth 2.1 account auth
 - MCP Apps / interactive 3D view
 - Project/session file resources (capability/workflow resources and prompts are implemented)
