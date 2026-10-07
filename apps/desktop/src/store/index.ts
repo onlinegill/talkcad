@@ -312,6 +312,7 @@ interface RenderState {
   selectedPoint: { x: number; y: number; z: number } | null;
   selectedNormal: { x: number; y: number; z: number } | null;
   selectedFaceIndex: number | null;
+  ghostStlData: string | null;
 
   // Viewport capture callback (registered by Viewport component)
   captureViewport: (() => string | null) | null;
@@ -329,6 +330,7 @@ interface RenderState {
     normal?: { x: number; y: number; z: number } | null,
     faceIndex?: number | null
   ) => void;
+  setGhostStlData: (data: string | null) => void;
   clearRender: () => void;
   setCaptureViewport: (capture: (() => string | null) | null) => void;
 }
@@ -344,6 +346,7 @@ export const useRenderStore = create<RenderState>((set) => ({
   selectedPoint: null,
   selectedNormal: null,
   selectedFaceIndex: null,
+  ghostStlData: null,
   captureViewport: null,
 
   setRenderResult: (output, stats, errors = [], warnings = []) =>
@@ -358,6 +361,7 @@ export const useRenderStore = create<RenderState>((set) => ({
   setImportedModel: (importedModelData, importedModelFormat) => set({ importedModelData, importedModelFormat }),
   setSelection: (selectedPoint, selectedNormal = null, selectedFaceIndex = null) =>
     set({ selectedPoint, selectedNormal, selectedFaceIndex }),
+  setGhostStlData: (ghostStlData) => set({ ghostStlData }),
   clearRender: () =>
     set({
       stlData: null,
@@ -369,6 +373,7 @@ export const useRenderStore = create<RenderState>((set) => ({
       selectedPoint: null,
       selectedNormal: null,
       selectedFaceIndex: null,
+      ghostStlData: null,
     }),
   setCaptureViewport: (captureViewport) => set({ captureViewport }),
 }));
