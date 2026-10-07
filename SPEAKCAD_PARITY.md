@@ -48,6 +48,9 @@ This fork now covers the core local conversational CAD-to-print workflow, but it
 - MCP STL/3MF -> G-code
 - MCP resources for capabilities and workflow
 - MCP reusable design/print prompts
+- Native STEP export through optional constrained CadQuery/OpenCascade backend
+- Desktop STEP panel with box/cylinder/sphere, hole, fillet/chamfer and STL preview
+- MCP `talkcad_export_step` tool
 - CI typecheck + MCP syntax validation + desktop build
 
 ## Missing for current SpeakCAD-class parity
@@ -82,9 +85,8 @@ This fork now covers the core local conversational CAD-to-print workflow, but it
 - Project/session file resources (capability/workflow resources and prompts are implemented)
 
 ### CAD backends
-- STEP export
-- CadQuery/OpenCascade backend
-- BREP/native CAD interchange
+- Full free-form CadQuery/OpenCascade model authoring beyond the constrained native-CAD builder
+- Broader BREP/native CAD interchange beyond STEP export
 
 ### Marketplace/account features
 - Accounts, private cloud projects, sharing/publishing, marketplace, credits/billing
