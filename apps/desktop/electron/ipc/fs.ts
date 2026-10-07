@@ -28,6 +28,19 @@ export function registerFsHandlers(getMainWindow: () => BrowserWindow | null) {
         return readFile(path, 'utf-8');
     });
 
+    ipcMain.handle('fs:openBinaryFile', async (_, filters?: { name: string; extensions: string[] }[]) => {
+        const mainWindow = getMainWindow();
+        if (!mainWindow) return null;
+        const result = await dialog.showOpenDialog(mainWindow, {
+            properties: ['openFile'],
+            filters: filters || [],
+        });
+        if (result.canceled || !result.filePaths[0]) return null;
+        const path = result.filePaths[0];
+        const data = await readFile(path);
+        return { path, name: path.split(/[\\/]/).pop() || 'model', base64: data.toString('base64') };
+    });
+
     ipcMain.handle('fs:writeFile', async (_, path: string, content: string) => {
         await writeFile(path, content, 'utf-8');
     });
