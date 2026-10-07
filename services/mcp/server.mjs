@@ -2,10 +2,12 @@
 import { createInterface } from 'node:readline';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { basename, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 
 const rl = createInterface({ input: process.stdin, crlfDelay: Infinity });
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 function send(message) {
   process.stdout.write(JSON.stringify(message) + '\n');
@@ -117,6 +119,68 @@ async function sliceScad(args) {
 }
 
 
+
+async function exportCadQueryStep(args) {
+  const spec = args.spec || {
+    primitive: args.primitive || 'box',
+    width: args.width,
+    depth: args.depth,
+    height: args.height,
+    diameter: args.diameter,
+    features: args.features || [],
+  };
+
+  const outputPath = resolve(args.outputPath || 'talkcad-model.step');
+  await mkdir(dirname(outputPath), { recursive: true });
+
+  const workDir = await mkdtemp(join(tmpdir(), 'talkcad-mcp-cq-'));
+  const specPath = join(workDir, 'spec.json');
+  const runner = resolve(__dirname, '../../apps/desktop/assets/cadquery/runner.py');
+  await writeFile(specPath, JSON.stringify(spec), 'utf8');
+
+  try {
+    const candidates = process.env.CADQUERY_PYTHON
+      ? [process.env.CADQUERY_PYTHON]
+      : process.platform === 'win32'
+        ? ['python', 'py']
+        : ['python3', 'python'];
+
+    let lastError = 'CadQuery is not available.';
+    for (const python of candidates) {
+      try {
+        const check = await run(python, ['-c', 'import cadquery as cq; print(cq.__version__)'], 15000);
+        if (check.code !== 0) {
+          lastError = check.stderr || check.stdout || lastError;
+          continue;
+        }
+
+        const exported = await run(python, [
+          runner,
+          '--spec', specPath,
+          '--output', outputPath,
+          '--format', 'step',
+        ], 120000);
+
+        if (exported.code !== 0) {
+          lastError = exported.stderr || exported.stdout || 'CadQuery STEP export failed.';
+          continue;
+        }
+
+        return {
+          path: outputPath,
+          fileName: basename(outputPath),
+          cadqueryVersion: check.stdout.trim(),
+        };
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : String(error);
+      }
+    }
+    throw new Error(lastError);
+  } finally {
+    await rm(workDir, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
 function primitiveScad(args) {
   const shape = args.shape || 'box';
   const width = Number(args.width ?? 60);
@@ -152,6 +216,28 @@ async function sliceFile(args) {
 }
 
 const tools = [
+  {
+    name: 'talkcad_export_step',
+    description: 'Create a native STEP file using a constrained CadQuery/OpenCascade primitive and feature specification.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        outputPath: { type: 'string' },
+        primitive: { type: 'string', enum: ['box', 'cylinder', 'sphere'] },
+        width: { type: 'number' },
+        depth: { type: 'number' },
+        height: { type: 'number' },
+        diameter: { type: 'number' },
+        features: {
+          type: 'array',
+          items: {
+            type: 'object',
+            description: 'Feature objects: hole, fillet, chamfer, translate, or rotate.'
+          }
+        }
+      }
+    },
+  },
   {
     name: 'talkcad_create_primitive',
     description: 'Create simple parametric OpenSCAD source for a box, cylinder, or sphere.',
@@ -226,6 +312,7 @@ const tools = [
 
 async function callTool(name, args) {
   switch (name) {
+    case 'talkcad_export_step': return exportCadQueryStep(args);
     case 'talkcad_create_primitive': return { code: primitiveScad(args) };
     case 'talkcad_validate_scad': return validateScad(args);
     case 'talkcad_render_stl': return renderStl(args);
